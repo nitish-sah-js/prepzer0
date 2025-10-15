@@ -1,5 +1,6 @@
 const Exam = require("../models/Exam");
 const sendEmails = require('./../utils/email')
+const { accountVerificationTemplate } = require('./../utils/emailTemplates')
 const User = require('./../models/usermodel')
 const { v4: uuidv4 } = require('uuid');
 const passport =  require('passport');
@@ -113,13 +114,13 @@ exports.signuppostcontrol = async(req,res)=>{
 
             randurl = uuidv4()
 
-          
+
            badhttp = "https://placement.prepzer0.co.in/authenticate/verify/"+randurl
             try{
                 await sendEmails({
                     email  : req.body.email ,
-                    subject : "verify email",
-                    html : "<h1 style='color : red;'>Email Verify </h1>  <a href="+badhttp+">"+badhttp+"</a>"
+                    subject : "Verify Your PrepZer0 Teacher Account",
+                    html : accountVerificationTemplate(badhttp)
                 })
                 console.log("the email was sent tried to sent to be specific")
 

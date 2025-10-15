@@ -3,6 +3,7 @@ const schedule = require('node-schedule');
 const Exam = require('../models/Exam');
 const User = require('../models/usermodel');
 const sendEmails = require('./email');
+const { examReminderTemplate } = require('./emailTemplates');
 const moment = require('moment-timezone');
 
 // Store job references so we can cancel them if needed
@@ -37,25 +38,18 @@ async function scheduleExamReminder(exam) {
 
           console.log(`Sending exam reminders to ${students.length} students for exam: ${exam.name}`);
 
-         
+
           for (const student of students) {
             await sendEmails({
               email: student.email,
-              subject: `Reminder: ${exam.name} starts in 15 minutes`,
-              html: `
-                <h2>Exam Reminder</h2>
-                <p>Hello ${student.name || 'Student'},</p>
-                <p>This is a reminder that your exam <strong>${exam.name}</strong> will start in 15 minutes.</p>
-                <p>Exam Details:</p>
-                <ul>
-                  <li>Start time: ${moment(exam.scheduledAt).format('MMMM Do YYYY, h:mm a')}</li>
-                  <li>Duration: ${exam.duration} minutes</li>
-                  <li>Type: ${exam.questionType}</li>
-                </ul>
-                <p>Please log in to the system a few minutes before the exam starts.</p>
-                <p>Good luck!</p>
-                <p>PrepZer0 Team</p>
-              `
+              subject: `⏰ Reminder: ${exam.name} starts in 15 minutes!`,
+              html: examReminderTemplate({
+                examName: exam.name,
+                studentName: student.name || 'Student',
+                startTime: moment(exam.scheduledAt).format('MMMM Do YYYY, h:mm a'),
+                duration: exam.duration,
+                questionType: exam.questionType
+              })
             });
           }
           

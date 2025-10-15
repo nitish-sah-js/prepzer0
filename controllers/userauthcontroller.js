@@ -1,5 +1,6 @@
 const User = require('./../models/usermodel')
 const sendEmails = require('./../utils/email')
+const { passwordResetTemplate } = require('./../utils/emailTemplates')
 const crypto =  require('crypto')
 exports.getforgotcontrol = async(req,res)=>{
     res.render('forgotpass' ,{ errormsg :""})
@@ -19,12 +20,13 @@ exports.forgotcontrol = async(req,res)=>{
                 // const reseturl = `localhost:3001/user/resetpassword/${resetToken}`
                 console.log()
                 try{
+                 const resetUrl = `https://placement.prepzer0.co.in/user/resetpassword/${resetToken}`;
                  await sendEmails({
                      email  : req.body.email ,
-                     subject : "reset password", 
-                     html : "The password reset link is : <a href = 'https://placement.prepzer0.co.in/user/resetpassword/"+resetToken+"'>click here</a>"
+                     subject : "Password Reset Request - PrepZer0",
+                     html : passwordResetTemplate(resetUrl, user.name)
                  })
-                 
+
                  res.redirect('/')
                 }catch(error){
                     console.log(error)
