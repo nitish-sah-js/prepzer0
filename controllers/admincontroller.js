@@ -16,12 +16,12 @@ exports.getcontrol = async(req,res)=>{
         console.log("authenticated")
         const Userprofile = await User.findById({_id : req.user.id})
 
-        if( Userprofile.usertype == "teacher"){
+        if( Userprofile.usertype == "teacher" || Userprofile.usertype == "admin"){
             const exams = await Exam.find().populate("createdBy", "name");
             res.render('admin', {
                 pic: Userprofile.imageurl,
                 logged_in: "true",
-                exams : exams 
+                exams : exams
             });
         }
         else{
@@ -80,7 +80,7 @@ exports.loginpostcontrol = async(req,res)=>{
                 else{
                     passport.authenticate('local')(req,res,function(){
                         console.log("sessions loged  in sucessfully")
-                        res.redirect('/supadmin')
+                        res.redirect('/admin')
                     })
                 }
             })       
