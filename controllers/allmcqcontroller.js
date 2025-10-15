@@ -98,7 +98,6 @@ exports.uploadMCQCSV = async (req, res) => {
 
         const exam = await Exam.findById(examId)
           .populate("mcqQuestions")
-          .populate("codingQuestions")
           .lean();
 
         console.log(exam);

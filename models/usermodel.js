@@ -4,6 +4,7 @@ var validator = require('validator');
 const passportLocalMongoose = require('passport-local-mongoose')
 const findOrCreate = require('mongoose-findorcreate');
 const { random } = require("lodash");
+const { calculateCurrentSemester } = require('./../utils/semesterCalculator');
 const UserSchema = new mongoose.Schema({
         email : {
            type : String ,
@@ -107,6 +108,23 @@ const UserSchema = new mongoose.Schema({
     //1BY22CS001==> BY + 22 + CS + 001
 
 })
+
+// Virtual field to calculate current semester dynamically
+UserSchema.virtual('CurrentSemester').get(function() {
+    if (!this.Year || this.usertype !== 'student') {
+        return this.Semester; // Fallback to stored value for non-students
+    }
+
+    // Extract year from Year field (e.g., "2022" -> 22)
+    const yearStr = this.Year.toString();
+    const usnYear = parseInt(yearStr.slice(-2));
+
+    return calculateCurrentSemester(usnYear);
+});
+
+// Ensure virtuals are included in JSON/Object output
+UserSchema.set('toJSON', { virtuals: true });
+UserSchema.set('toObject', { virtuals: true });
 
 UserSchema.plugin(passportLocalMongoose, { usernameField : 'email' })
 UserSchema.plugin(findOrCreate)

@@ -17,12 +17,12 @@ exports.getcontrol = async(req,res)=>{
         console.log("authenticated")
         const Userprofile = await User.findById({_id : req.user.id})
 
-        if( Userprofile.usertype == "teacher"){
+        if( Userprofile.usertype == "teacher" || Userprofile.usertype == "admin"){
             const exams = await Exam.find().populate("createdBy", "name");
             res.render('admin', {
                 pic: Userprofile.imageurl,
                 logged_in: "true",
-                exams : exams 
+                exams : exams
             });
         }
         else{
@@ -81,7 +81,7 @@ exports.loginpostcontrol = async(req,res)=>{
                 else{
                     passport.authenticate('local')(req,res,function(){
                         console.log("sessions loged  in sucessfully")
-                        res.redirect('/supadmin')
+                        res.redirect('/admin')
                     })
                 }
             })       
@@ -548,8 +548,8 @@ exports.evaluateAllSubmissions = async (req, res) => {
             });
         }
 
-        // Fetch the exam to ensure it exists and has coding questions
-        const exam = await Exam.findById(examId).populate('codingQuestions');
+        // Fetch the exam to ensure it exists
+        const exam = await Exam.findById(examId);
         
         if (!exam) {
             return res.status(404).json({
@@ -1171,8 +1171,7 @@ exports.examCandidates = async(req, res) => {
 async function handleCandidatesPageRequest(req, res, examId) {
     // Fetch the exam details with populated questions
     const exam = await Exam.findById(examId)
-        .populate('mcqQuestions')
-        .populate('codingQuestions');
+        .populate('mcqQuestions');
     
     if (!exam) {
         return res.status(404).render('error', { 
@@ -1259,8 +1258,7 @@ async function handleCandidatesDataRequest(req, res, examId) {
 
     // Fetch the exam details
     const exam = await Exam.findById(examId)
-        .populate('mcqQuestions')
-        .populate('codingQuestions');
+        .populate('mcqQuestions');
     
     if (!exam) {
         return res.status(404).json({ 
@@ -1413,55 +1411,8 @@ async function handleCandidatesDataRequest(req, res, examId) {
             const studentId = submission.student._id.toString();
             const activeSession = activeSessionsMap.get(studentId);
             
-            // Get MCQ score
-            let mcqScore = 0;
-            if (hasMCQ && !hasCoding && submission._id) {
-                try {
-                    const report = await ReportModel.getAssessmentReport(submission._id);
-                    if (report && report.score) {
-                        mcqScore = report.score.obtained;
-                    }
-                } catch (error) {
-                    console.error(`Error getting report for submission ${submission._id}:`, error);
-                    if (submission.mcqAnswers && submission.mcqAnswers.length > 0) {
-                        let calculatedMCQScore = 0;
-                        for (const answer of submission.mcqAnswers) {
-                            try {
-                                const question = await mongoose.model('MCQ').findById(answer.questionId);
-                                if (question && answer.selectedOption === question.correctAnswer) {
-                                    calculatedMCQScore += question.marks || 0;
-                                }
-                            } catch (err) {
-                                console.error('Error calculating MCQ score:', err);
-                            }
-                        }
-                        mcqScore = calculatedMCQScore;
-                    }
-                }
-            }else if(hasMCQ && hasCoding && submission._id){
-                try {
-                    const report = await ReportModel.getAssessmentReport(submission._id);
-                    if (report && report.score) {
-                        mcqScore = report.score.mcq.obtained;
-                    }
-                } catch (error) {
-                    console.error(`Error getting report for submission ${submission._id}:`, error);
-                    if (submission.mcqAnswers && submission.mcqAnswers.length > 0) {
-                        let calculatedMCQScore = 0;
-                        for (const answer of submission.mcqAnswers) {
-                            try {
-                                const question = await mongoose.model('MCQ').findById(answer.questionId);
-                                if (question && answer.selectedOption === question.correctAnswer) {
-                                    calculatedMCQScore += question.marks || 0;
-                                }
-                            } catch (err) {
-                                console.error('Error calculating MCQ score:', err);
-                            }
-                        }
-                        mcqScore = calculatedMCQScore;
-                    }
-                }
-            }
+            // Get MCQ score - use pre-calculated score from submission (OPTIMIZED!)
+            let mcqScore = submission.score || 0;
             
             // Get coding score
             let codingScore = 0;

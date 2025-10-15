@@ -4,6 +4,7 @@ const User = require('./../models/usermodel')
 const passport =  require('passport')
 const { random } = require('lodash')
 const { v4: uuidv4 } = require('uuid');
+const { calculateInitialSemester } = require('./../utils/semesterCalculator');
 exports.getlogincontrol = (req, res) => {
     try {
         if (req.isAuthenticated()) {
@@ -182,30 +183,10 @@ exports.signupcontrol = async (req, res) => {
     const year = "20" + match[3];
     const department = match[4];
     const rollNo = match[5];
-    
-    // Calculate current semester based on USN year
-    // Extract the two-digit year from USN
+
+    // Calculate current semester dynamically based on USN year and current date
     const usnYear = parseInt(match[3]);
-    let semester;
-    
-    // Calculate semester based on the year
-    switch(usnYear) {
-      case 21:
-        semester = 8;
-        break;
-      case 22:
-        semester = 6;
-        break;
-      case 23:
-        semester = 4;
-        break;
-      case 24:
-        semester = 2;
-        break;
-      default:
-        // Handle edge cases or different years
-        semester = 0; // Or some default value
-    }
+    const semester = calculateInitialSemester(usnYear);
     
     // Check for existing users with same USN
     const existingUser = await User.findOne({ USN: usn });
