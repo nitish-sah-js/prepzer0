@@ -49,31 +49,80 @@ exports.logincontrol = async (req, res, next) => {
         }
         
         // Successful authentication, now log in the user
-        req.login(user, (loginErr) => {
+        req.login(user, async (loginErr) => {
             if (loginErr) {
                 console.error('Login error after authentication:', loginErr);
-                return res.status(500).render('login', { 
-                    errormsg: "Error during login. Please try again.", 
-                    isStudentPage: true 
+                return res.status(500).render('login', {
+                    errormsg: "Error during login. Please try again.",
+                    isStudentPage: true
                 });
             }
-            
+
             // Set session data
             req.session.userId = user._id;
             req.session.userEmail = user.email;
-            
-            // Save session and redirect
-            req.session.save((saveErr) => {
+
+            // Save session first to get the session ID
+            req.session.save(async (saveErr) => {
                 if (saveErr) {
                     console.error('Session save error:', saveErr);
-                    return res.status(500).render('login', { 
-                        errormsg: "Session error. Please try logging in again.", 
-                        isStudentPage: true 
+                    return res.status(500).render('login', {
+                        errormsg: "Session error. Please try logging in again.",
+                        isStudentPage: true
                     });
                 }
-                
-                console.log('Login successful for:', user.email);
-                return res.redirect('/');
+
+                try {
+                    // ONLY track sessions for students (for exam integrity)
+                    // Teachers and admins can login from multiple devices
+                    if (user.usertype === 'student') {
+                        // Fetch fresh user data from database to get current session ID
+                        const freshUser = await User.findById(user._id);
+                        const sessionStore = req.sessionStore;
+                        const oldSessionId = freshUser.currentSessionId;
+
+                        console.log('=== STUDENT LOGIN DEBUG ===');
+                        console.log('Student:', user.email);
+                        console.log('Old session ID:', oldSessionId);
+                        console.log('New session ID:', req.sessionID);
+
+                        // If there's an old session, destroy it from MongoDB (AWAIT to ensure it completes)
+                        if (oldSessionId && oldSessionId !== req.sessionID) {
+                            await new Promise((resolve, reject) => {
+                                sessionStore.destroy(oldSessionId, (destroyErr) => {
+                                    if (destroyErr) {
+                                        console.error('Error destroying old session:', destroyErr);
+                                        reject(destroyErr);
+                                    } else {
+                                        console.log('Old session destroyed successfully for student:', user.email);
+                                        resolve();
+                                    }
+                                });
+                            });
+                        }
+
+                        // Update user document with new session ID
+                        const updateResult = await User.updateOne(
+                            { _id: user._id },
+                            { currentSessionId: req.sessionID }
+                        );
+
+                        console.log('Database update result:', updateResult);
+                        console.log('Student login successful - Session ID saved:', req.sessionID);
+                        console.log('=========================');
+                    } else {
+                        console.log('Teacher/Admin login - no session tracking');
+                    }
+
+                    return res.redirect('/');
+
+                } catch (dbErr) {
+                    console.error('Database error during login:', dbErr);
+                    return res.status(500).render('login', {
+                        errormsg: "Login error. Please try again.",
+                        isStudentPage: true
+                    });
+                }
             });
         });
     })(req, res, next);

@@ -97,11 +97,15 @@ const UserSchema = new mongoose.Schema({
         },
         passwordresettoken : String ,
         passwordresetdate : Date ,
-   
-  
+        currentSessionId : {
+            type : String,
+            default : null
+        },
+
+
     //USN==> location + Year + Dept + Rollno
-    //1BY22CS001==> BY + 22 + CS + 001 
-   
+    //1BY22CS001==> BY + 22 + CS + 001
+
 })
 
 UserSchema.plugin(passportLocalMongoose, { usernameField : 'email' })

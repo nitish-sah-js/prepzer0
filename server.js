@@ -3,7 +3,7 @@ const dotenv = require("dotenv")
 const app = require("./app")
 dotenv.config()
 const server = require("http").createServer(app)
-const port = process.env.PORT || 3001
+const port = process.env.PORT || 80
 const { scheduleAllExamReminders } = require("./utils/examreminder")
 
 server.listen(port, function () {

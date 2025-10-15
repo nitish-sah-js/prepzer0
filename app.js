@@ -85,6 +85,11 @@ app.use((req, res, next) => {
 //using passport middlewares
 app.use(passport.initialize());
 app.use(passport.session())
+
+// Single device login enforcement middleware
+const validateSingleSession = require('./middleware/sessionValidator');
+app.use(validateSingleSession);
+
 const { send, type } = require('express/lib/response');
 const { authenticate } = require('passport');
 const { result } = require('lodash');
@@ -156,21 +161,38 @@ const profile = require('./routes/profile')
 const userauth = require('./routes/userauth')
 const supadmin = require('./routes/supadmin')
 
-app.get('/logout', (req, res, next) => {
+app.get('/logout', async (req, res, next) => {
+  // Store user info before logout
+  const userId = req.user ? req.user._id : null;
+  const userType = req.user ? req.user.usertype : null;
+
   // Clear both the session and authentication
-  req.logout((err) => {
-    if (err) { 
+  req.logout(async (err) => {
+    if (err) {
       console.error("Logout error:", err);
-      return next(err); 
+      return next(err);
     }
-    
+
+    // Clear the currentSessionId from user document (ONLY for students)
+    if (userId && userType === 'student') {
+      try {
+        await User.updateOne(
+          { _id: userId },
+          { currentSessionId: null }
+        );
+        console.log('Session ID cleared for student:', userId);
+      } catch (dbErr) {
+        console.error('Error clearing session ID:', dbErr);
+      }
+    }
+
     // Force session regeneration to ensure complete cleanup
     req.session.regenerate((regenerateErr) => {
       if (regenerateErr) {
         console.error("Session regeneration error:", regenerateErr);
         return next(regenerateErr);
       }
-      
+
       res.redirect('/');
     });
   });
@@ -179,6 +201,31 @@ app.get("/check", async (req,res)=>{
   const user = await User.find();
   console.log(user)
 })
+
+// API endpoint to check if current session is still valid
+app.get('/api/check-session', async (req, res) => {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.json({ valid: false, reason: 'not_authenticated' });
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.json({ valid: false, reason: 'user_not_found' });
+    }
+
+    // Check if current session matches stored session
+    if (user.currentSessionId && user.currentSessionId !== req.sessionID) {
+      return res.json({ valid: false, reason: 'session_mismatch' });
+    }
+
+    return res.json({ valid: true });
+  } catch (error) {
+    console.error('Session check error:', error);
+    return res.json({ valid: false, reason: 'error' });
+  }
+});
 
 const upload = multer({ storage: multer.memoryStorage() });
 const Integrity = require('./models/Integrity');
