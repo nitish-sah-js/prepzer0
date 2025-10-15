@@ -24,11 +24,14 @@ exports.getcontrol = async (req, res) => {
         //     departments: student.Department
         // });
 
+        // Calculate current semester dynamically
+        const currentSemester = student.CurrentSemester || student.Semester;
+
         const exams = await Exam.find({
           $or: [
             // Regular exams created with department and semester selection
             {
-              semester: student.Semester,
+              semester: currentSemester,
               departments: student.Department,
             },
             // Exams created via Excel sheet (find via ExamCandidate)
@@ -119,7 +122,6 @@ exports.getStartExam = async (req, res) => {
     }
     const exam = await Exam.findById(req.params.examId)
       .populate("mcqQuestions")
-      .populate("codingQuestions")
 
     if (!exam) {
       return res.status(404).send("Exam not found")
@@ -174,37 +176,29 @@ exports.postStartExam = async (req, res) => {
       return res.status(401).json({ error: "User not authenticated" })
     }
 
-    // Create new submission
+    // Calculate MCQ score automatically
+    let totalScore = 0
+
+    // Grade MCQ questions
+    if (mcqAnswers && mcqAnswers.length > 0) {
+      for (const answer of mcqAnswers) {
+        const question = await MCQQuestion.findById(answer.questionId)
+        // Both correctAnswer and selectedOption are strings, compare as strings
+        if (question && question.correctAnswer === answer.selectedOption) {
+          totalScore += question.marks || 1
+        }
+      }
+    }
+
+    // Create new submission with calculated score
     const newSubmission = new Submission({
       exam: examId,
       student: studentId,
       mcqAnswers: mcqAnswers || [],
       codingAnswers: codingAnswers || [],
+      score: totalScore, // Save the calculated score
       submittedAt: new Date(),
     })
-
-    // Calculate score (if exam has automatic grading enabled)
-    if (exam.autoGrade) {
-      let totalScore = 0
-
-      // Grade MCQ questions
-      if (mcqAnswers && mcqAnswers.length > 0) {
-        for (const answer of mcqAnswers) {
-          const question = await MCQQuestion.findById(answer.questionId)
-          if (
-            question &&
-            question.correctOption === parseInt(answer.selectedOption)
-          ) {
-            totalScore += question.marks || 1
-          }
-        }
-      }
-
-      // For coding questions, you might need a more complex grading system
-      // This is a simplified example
-
-      newSubmission.score = totalScore
-    }
 
     // Save the submission
     await newSubmission.save()

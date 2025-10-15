@@ -531,7 +531,7 @@
     <div class="app-container">
         <div class="card form-card">
             <div class="card-header">
-                <span>Exam Details</span>
+                <span>Edit Exam Details</span>
                 <div class="card-header-buttons">
                     <button type="button" class="settings-button" data-bs-toggle="modal" data-bs-target="#settingsModal">
                         <i class="bi bi-gear"></i> Settings
@@ -543,25 +543,25 @@
             </div>
 
             <div class="card-body">
-                <form id="createExamForm" action="/admin/create_exam" method="POST">
+                <form id="createExamForm" action="/admin/exam/<%= exam._id %>" method="POST">
                     <div class="form-content">
                         <div class="form-group">
                             <label for="examName" class="form-label">Exam Name</label>
-                            <input type="text" id="examName" name="name" class="form-control" placeholder="Enter exam name" required>
+                            <input type="text" id="examName" name="name" class="form-control" placeholder="Enter exam name" value="<%= exam.name %>" required>
                         </div>
 
                         <div class="form-group">
                             <label for="semester" class="form-label">Semester</label>
                             <select id="semester" name="semester" class="form-select" required>
-                                <option value="" disabled selected>Select semester</option>
-                                <option value="1">Semester 1</option>
-                                <option value="2">Semester 2</option>
-                                <option value="3">Semester 3</option>
-                                <option value="4">Semester 4</option>
-                                <option value="5">Semester 5</option>
-                                <option value="6">Semester 6</option>
-                                <option value="7">Semester 7</option>
-                                <option value="8">Semester 8</option>
+                                <option value="" disabled>Select semester</option>
+                                <option value="1" <%= exam.semester === 1 ? 'selected' : '' %>>Semester 1</option>
+                                <option value="2" <%= exam.semester === 2 ? 'selected' : '' %>>Semester 2</option>
+                                <option value="3" <%= exam.semester === 3 ? 'selected' : '' %>>Semester 3</option>
+                                <option value="4" <%= exam.semester === 4 ? 'selected' : '' %>>Semester 4</option>
+                                <option value="5" <%= exam.semester === 5 ? 'selected' : '' %>>Semester 5</option>
+                                <option value="6" <%= exam.semester === 6 ? 'selected' : '' %>>Semester 6</option>
+                                <option value="7" <%= exam.semester === 7 ? 'selected' : '' %>>Semester 7</option>
+                                <option value="8" <%= exam.semester === 8 ? 'selected' : '' %>>Semester 8</option>
                             </select>
                         </div>
                         
@@ -579,31 +579,31 @@
                             <div class="departments-container">
 
                                 <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ad" name="departments" value="ad" class="form-check-input">
-                                    <label class="form-check-label" for="dept-mca">AD</label>
+                                    <input type="checkbox" id="dept-ad" name="departments" value="ad" class="form-check-input" <%= exam.departments && exam.departments.includes('ad') ? 'checked' : '' %>>
+                                    <label class="form-check-label" for="dept-ad">AD</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ise" name="departments" value="is" class="form-check-input">
+                                    <input type="checkbox" id="dept-ise" name="departments" value="is" class="form-check-input" <%= exam.departments && exam.departments.includes('is') ? 'checked' : '' %>>
                                     <label class="form-check-label" for="dept-ise">ISE</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-cse" name="departments" value="cs" class="form-check-input">
+                                    <input type="checkbox" id="dept-cse" name="departments" value="cs" class="form-check-input" <%= exam.departments && exam.departments.includes('cs') ? 'checked' : '' %>>
                                     <label class="form-check-label" for="dept-cse">CSE</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ete" name="departments" value="et" class="form-check-input">
+                                    <input type="checkbox" id="dept-ete" name="departments" value="et" class="form-check-input" <%= exam.departments && exam.departments.includes('et') ? 'checked' : '' %>>
                                     <label class="form-check-label" for="dept-ete">ETE</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ece" name="departments" value="ec" class="form-check-input">
+                                    <input type="checkbox" id="dept-ece" name="departments" value="ec" class="form-check-input" <%= exam.departments && exam.departments.includes('ec') ? 'checked' : '' %>>
                                     <label class="form-check-label" for="dept-ece">ECE</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ai" name="departments" value="ai" class="form-check-input">
+                                    <input type="checkbox" id="dept-ai" name="departments" value="ai" class="form-check-input" <%= exam.departments && exam.departments.includes('ai') ? 'checked' : '' %>>
                                     <label class="form-check-label" for="dept-ai">AI</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-civil" name="departments" value="cg" class="form-check-input">
+                                    <input type="checkbox" id="dept-civil" name="departments" value="cg" class="form-check-input" <%= exam.departments && exam.departments.includes('cg') ? 'checked' : '' %>>
                                     <label class="form-check-label" for="dept-civil">CG</label>
                                 </div>
                             </div>
@@ -613,7 +613,7 @@
                                     <i class="bi bi-person-plus"></i> Select Additional Candidates
                                 </button>
                                 <button type="submit" name="action" value="create" class="btn-create-exam">
-                                    <i class="bi bi-check-circle"></i> Create Exam
+                                    <i class="bi bi-check-circle"></i> Update Exam
                                 </button>
                             </div>
                         </div>
@@ -631,20 +631,20 @@
                         <div class="form-group">
                             <label for="questionType" class="form-label">Question Type</label>
                             <select id="questionType" name="questionType" class="form-select" onchange="toggleQuestionFields()" required>
-                                <option value="mcq">MCQ</option>
-                                <option value="coding">Coding</option>
-                                <option value="mcq&coding">MCQ + Coding</option>
+                                <option value="mcq" <%= exam.questionType === 'mcq' ? 'selected' : '' %>>MCQ</option>
+                                <option value="coding" <%= exam.questionType === 'coding' ? 'selected' : '' %>>Coding</option>
+                                <option value="mcq&coding" <%= exam.questionType === 'mcq&coding' ? 'selected' : '' %>>MCQ + Coding</option>
                             </select>
                         </div>
 
                         <div id="mcqFields" class="form-group" style="display: none;">
                             <label for="numMCQs" class="form-label">Number of MCQ Questions</label>
-                            <input type="number" id="numMCQs" name="numMCQs" class="form-control" onchange="updateTotalQuestions()" placeholder="Enter MCQ count">
+                            <input type="number" id="numMCQs" name="numMCQs" class="form-control" onchange="updateTotalQuestions()" placeholder="Enter MCQ count" value="<%= exam.numMCQs || '' %>">
                         </div>
 
                         <div id="codingFields" class="form-group" style="display: none;">
                             <label for="numCoding" class="form-label">Number of Coding Questions</label>
-                            <input type="number" id="numCoding" name="numCoding" class="form-control" onchange="updateTotalQuestions()" placeholder="Enter coding count">
+                            <input type="number" id="numCoding" name="numCoding" class="form-control" onchange="updateTotalQuestions()" placeholder="Enter coding count" value="<%= exam.numCoding || '' %>">
                         </div>
 
                         <div id="totalQuestionFields" class="form-group" style="display: none;">
@@ -654,7 +654,7 @@
 
                         <div class="form-group">
                             <label for="duration" class="form-label">Duration (minutes)</label>
-                            <input type="number" id="duration" name="Duration" class="form-control" placeholder="Enter duration">
+                            <input type="number" id="duration" name="Duration" class="form-control" placeholder="Enter duration" value="<%= exam.duration || '' %>">
                             <!-- Quick duration buttons -->
                             <div class="duration-quick-select">
                                 <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDuration(30)">30m</button>
@@ -667,7 +667,7 @@
                         <div class="form-group">
                             <label for="scheduledAt" class="form-label">Exam Start Time</label>
                             <div class="date-time-group">
-                                <input type="text" id="scheduledAt" name="scheduledAt" class="form-control" placeholder="Select date and time" readonly>
+                                <input type="text" id="scheduledAt" name="scheduledAt" class="form-control" placeholder="Select date and time" readonly data-initial-value="<%= exam.scheduledAt ? new Date(exam.scheduledAt).toISOString() : '' %>">
                                 <span class="icon"><i class="bi bi-calendar-event"></i></span>
                             </div>
                         </div>
@@ -675,7 +675,7 @@
                         <div class="form-group">
                             <label for="scheduleTill" class="form-label">Exam End Time</label>
                             <div class="date-time-group">
-                                <input type="text" id="scheduleTill" name="scheduleTill" class="form-control" placeholder="Select date and time" readonly>
+                                <input type="text" id="scheduleTill" name="scheduleTill" class="form-control" placeholder="Select date and time" readonly data-initial-value="<%= exam.scheduleTill ? new Date(exam.scheduleTill).toISOString() : '' %>">
                                 <span class="icon"><i class="bi bi-calendar-event"></i></span>
                             </div>
                             <div id="durationDisplay"></div>
@@ -714,27 +714,27 @@
                             <div class="settings-option-desc">Enable camera access to monitor students during the exam</div>
                         </div>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="cameraSetting" onchange="updateSettingsInputs()">
+                            <input class="form-check-input" type="checkbox" id="cameraSetting" onchange="updateSettingsInputs()" <%= exam.settings && exam.settings.camera ? 'checked' : '' %>>
                         </div>
                     </div>
-                    
+
                     <div class="settings-option">
                         <div class="settings-option-info">
                             <div class="settings-option-title">Phone Detection</div>
                             <div class="settings-option-desc">Block or warn students when phone usage is detected</div>
                         </div>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="phoneSetting" checked onchange="updateSettingsInputs()">
+                            <input class="form-check-input" type="checkbox" id="phoneSetting" onchange="updateSettingsInputs()" <%= exam.settings && exam.settings.phone ? 'checked' : '' %>>
                         </div>
                     </div>
-                    
+
                     <div class="settings-option">
                         <div class="settings-option-info">
                             <div class="settings-option-title">Show Results</div>
                             <div class="settings-option-desc">Display exam results to students immediately after completion</div>
                         </div>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="showResultsSetting" onchange="updateSettingsInputs()">
+                            <input class="form-check-input" type="checkbox" id="showResultsSetting" onchange="updateSettingsInputs()" <%= exam.settings && exam.settings.showResults ? 'checked' : '' %>>
                         </div>
                     </div>
                 </div>
@@ -797,12 +797,12 @@
         // Initialize the selected candidates array
         let selectedCandidates = [];
         let startDatePicker, endDatePicker;
-        
-        // Settings object to track current settings
+
+        // Settings object to track current settings - initialize with exam values
         let examSettings = {
-            camera: false,
-            phone: true,
-            showResults: false
+            camera: <%= exam.settings && exam.settings.camera ? 'true' : 'false' %>,
+            phone: <%= exam.settings && exam.settings.phone ? 'true' : 'false' %>,
+            showResults: <%= exam.settings && exam.settings.showResults ? 'true' : 'false' %>
         };
         
         function toggleQuestionFields() {
@@ -870,7 +870,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             toggleQuestionFields();
             updateSettingsInputs(); // Initialize settings inputs
-            
+
+            // Get initial date values
+            const startDateInput = document.getElementById('scheduledAt');
+            const endDateInput = document.getElementById('scheduleTill');
+            const initialStartDate = startDateInput.getAttribute('data-initial-value');
+            const initialEndDate = endDateInput.getAttribute('data-initial-value');
+
             // Initialize Flatpickr date pickers
             const commonConfig = {
                 enableTime: true,
@@ -879,11 +885,12 @@
                 minuteIncrement: 5,
                 allowInput: true
             };
-            
+
             // Start date picker
             startDatePicker = flatpickr("#scheduledAt", {
                 ...commonConfig,
-                minDate: "today",
+                defaultDate: initialStartDate || null,
+                minDate: null, // Allow past dates for editing existing exams
                 onClose: function(selectedDates, dateStr) {
                     // Check if selected date is in the past
                     if (isDateInPast(selectedDates[0])) {
@@ -915,7 +922,8 @@
             // End date picker
             endDatePicker = flatpickr("#scheduleTill", {
                 ...commonConfig,
-                minDate: "today",
+                defaultDate: initialEndDate || null,
+                minDate: null, // Allow past dates for editing existing exams
                 onClose: function(selectedDates) {
                     // Check if selected date is in the past
                     if (isDateInPast(selectedDates[0])) {
@@ -997,6 +1005,14 @@
             document.getElementById('cameraSetting').addEventListener('change', updateSettingsInputs);
             document.getElementById('phoneSetting').addEventListener('change', updateSettingsInputs);
             document.getElementById('showResultsSetting').addEventListener('change', updateSettingsInputs);
+
+            // Update duration display after dates are loaded
+            setTimeout(() => {
+                updateDurationDisplay();
+            }, 100);
+
+            // Update total questions for mixed type exams
+            updateTotalQuestions();
         });
         
         // Function to update the duration display
