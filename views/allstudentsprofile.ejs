@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= title %> - Student Search</title>
+  <style>
+    :root {
+      --primary-bg: #1B2638;
+      --secondary-bg: #1e263a;
+      --card-bg: #2a3854;
+      --accent-color: #4285f4;
+      --hover-accent: #5a94ff;
+      --text-primary: #ffffff;
+      --text-secondary: #a0aec0;
+      --border-color: #3d4b69;
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      --input-bg: #252e43;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--primary-bg);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+      background-image: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 100%);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    header {
+      background-color: var(--secondary-bg);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 15px 0;
+    }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-top: 10px;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--accent-color);
+      letter-spacing: -0.5px;
+    }
+
+    .search-form {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 0 15px 15px;
+    }
+
+    .search-form select,
+    .search-form input {
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 15px;
+      min-width: 160px;
+      background-color: var(--input-bg);
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      flex: 1;
+      max-width: 200px;
+    }
+
+    .search-form select:focus,
+    .search-form input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+    }
+
+    .search-form button {
+      padding: 12px 24px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+      min-width: 120px;
+    }
+
+    .search-form button:hover {
+      background-color: var(--hover-accent);
+    }
+
+    .students-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      padding: 30px 15px;
+    }
+
+    .student-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+
+    .student-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      border-color: var(--accent-color);
+    }
+
+    .student-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+      background-color: var(--input-bg);
+    }
+
+    .student-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .student-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .student-usn {
+      font-size: 15px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .student-details {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .detail-badge {
+      background-color: rgba(66, 133, 244, 0.15);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent-color);
+    }
+
+    .no-students {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 0;
+      font-size: 18px;
+      color: var(--text-secondary);
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      margin: 30px auto;
+      max-width: 500px;
+      box-shadow: var(--card-shadow);
+    }
+
+    @media (max-width: 768px) {
+      .search-form {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-form select,
+      .search-form input {
+        max-width: 100%;
+      }
+      
+      .students-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .search-count {
+      text-align: center;
+      color: var(--text-secondary);
+      margin-top: 20px;
+      font-size: 15px;
+    }
+    
+    .dashboard-link {
+      position: absolute;
+      top: 20px;
+      right: 25px;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 500;
+      background-color: rgba(66, 133, 244, 0.15);
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+    
+    .dashboard-link:hover {
+      background-color: rgba(66, 133, 244, 0.25);
+      color: var(--accent-color);
+      border-color: var(--accent-color);
+      transform: translateY(-2px);
+    }
+    
+    .dashboard-link svg {
+      margin-right: 6px;
+    }
+    
+    @media (max-width: 768px) {
+      .dashboard-link {
+        position: relative;
+        top: 0;
+        left: 0;
+        margin: 10px 0;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/dashboard" class="dashboard-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Dashboard
+      </a>
+      <h1 class="page-title"><%= title %> Student Directory</h1>
+      <form action="" method="GET" class="search-form">
+        <select id="semesterSelect" name="semester">
+          <option value="">All Semesters</option>
+          <option value="1" <%= currentFilters.semester === '1' ? 'selected' : '' %>>Semester 1</option>
+          <option value="2" <%= currentFilters.semester === '2' ? 'selected' : '' %>>Semester 2</option>
+          <option value="3" <%= currentFilters.semester === '3' ? 'selected' : '' %>>Semester 3</option>
+          <option value="4" <%= currentFilters.semester === '4' ? 'selected' : '' %>>Semester 4</option>
+          <option value="5" <%= currentFilters.semester === '5' ? 'selected' : '' %>>Semester 5</option>
+          <option value="6" <%= currentFilters.semester === '6' ? 'selected' : '' %>>Semester 6</option>
+          <option value="7" <%= currentFilters.semester === '7' ? 'selected' : '' %>>Semester 7</option>
+          <option value="8" <%= currentFilters.semester === '8' ? 'selected' : '' %>>Semester 8</option>
+        </select>
+
+        <select id="departmentSelect" name="department">
+          <option value="">All Departments</option>
+          <option value="CS" <%= currentFilters.department === 'CS' ? 'selected' : '' %>>Computer Science</option>
+          <option value="IS" <%= currentFilters.department === 'IS' ? 'selected' : '' %>>Information Science</option>
+          <option value="Mech" <%= currentFilters.department === 'Mech' ? 'selected' : '' %>>Mechanical</option>
+          <option value="Civil" <%= currentFilters.department === 'Civil' ? 'selected' : '' %>>Civil</option>
+          <option value="EC" <%= currentFilters.department === 'EC' ? 'selected' : '' %>>Electronics & Comm.</option>
+          <option value="EEE" <%= currentFilters.department === 'EEE' ? 'selected' : '' %>>Electrical & Electronics</option>
+        </select>
+
+        <input type="text" id="usnSearch" name="usn" placeholder="Search by USN" value="<%= currentFilters.usn %>" />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+  </header>
+
+  <div class="container">
+    <% if(students && students.length > 0) { %>
+      <div class="search-count"><%= students.length %> student<%= students.length === 1 ? '' : 's' %> found</div>
+    <% } %>
+    
+    <div class="students-container" id="studentList">
+      <% if(students && students.length > 0) { %>
+        <% students.forEach(student => { %>
+          <div class="student-card" onclick="location.href='/admin/students/<%= student._id %>/exams'">
+            <img class="student-avatar" src="<%= student.imageurl || 'https://randomuser.me/api/portraits/men/1.jpg' %>" alt="<%= student.name %>" />
+            <div class="student-info">
+              <div class="student-name"><%= student.fname || 'Student Name' %></div>
+              <div class="student-usn"><%= student.USN || 'N/A' %></div>
+              <div class="student-details">
+                <span class="detail-badge"><%= student.Department || 'N/A' %></span>
+                <span class="detail-badge">Sem <%= student.Semester || 'N/A' %></span>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <div class="no-students">
+          <p>No students matching your search criteria</p>
+          <p>Try adjusting your filters or search terms</p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Making student cards clickable already handled with onclick attribute
+      // This space is available for any additional JavaScript functionality
+    });
+  </script>
+</body>
+</html>

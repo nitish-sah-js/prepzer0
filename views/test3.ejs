@@ -1,0 +1,3829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%=exam.name%></title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<!-- Add these lines in the <head> section, after the Font Awesome link -->
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #6b7280;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #111827;
+            --light: #f9fafb;
+            --white: #ffffff;
+            --border: #e5e7eb;
+            --border-radius: 0.5rem;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: var(--white);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .timer-display {
+            background-color: var(--white);
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timer-critical {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Main Container Styles */
+        .main-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+        }
+
+
+
+
+        /* ✅ UPDATED CSS: Better styles for code formatting in MCQ questions */
+
+.question-with-code {
+    line-height: 1.6;
+}
+
+.code-block {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    padding: 20px;
+    border-radius: 8px;
+    font-family: 'Courier New', Consolas, Monaco, 'Liberation Mono', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 16px 0;
+    overflow-x: auto;
+    border-left: 4px solid #4a90e2;
+    white-space: pre-wrap; /* Preserves spacing and allows wrapping */
+    word-wrap: break-word;
+    
+    /* ✅ ADDED: Better syntax highlighting colors */
+    /* Keywords will appear in different colors if you add syntax highlighting later */
+}
+
+/* ✅ ADDED: Specific styling for C syntax elements */
+.code-block {
+    /* Make sure HTML entities display correctly */
+    word-break: normal;
+    overflow-wrap: break-word;
+}
+
+/* ✅ ENHANCED: Better styling for existing question title */
+.question-title {
+    color: #2d3748;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+/* ✅ OPTIONAL: Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .code-block {
+        background-color: #1a202c;
+        color: #cbd5e0;
+        border-left-color: #63b3ed;
+    }
+    
+    .question-title {
+        color: #f7fafc;
+    }
+}
+
+/* ✅ RESPONSIVE: Better mobile display */
+@media (max-width: 768px) {
+    .code-block {
+        font-size: 13px;
+        padding: 16px;
+        margin: 12px 0;
+        border-radius: 6px;
+    }
+    
+    .question-title {
+        font-size: 16px;
+    }
+}
+
+
+
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Question Content Styles */
+        .question-panel {
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .question-header {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-EASY {
+            background-color: #bbf7d0;
+            color: #166534;
+        }
+
+        .badge-MEDIUM {
+            background-color: #fef08a;
+            color: #854d0e;
+        }
+
+        .badge-HARD {
+            background-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .badge-category {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-marks {
+            background-color: #e9d5ff;
+            color: #6b21a8;
+        }
+
+        .question-content {
+            padding: 1.5rem;
+        }
+
+        .question-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .question-description {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        pre {
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        /* MCQ Options Styles */
+        .mcq-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .mcq-option {
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .mcq-option:hover {
+            background-color: #f1f5f9;
+            border-color: #d1d5db;
+        }
+
+        .mcq-option.selected {
+            background-color: #dbeafe;
+            border-color: var(--primary);
+        }
+
+        .mcq-option input[type="radio"] {
+            margin-right: 0.75rem;
+            cursor: pointer;
+            height: 1.2rem;
+            width: 1.2rem;
+        }
+
+        .mcq-option label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+
+
+        /* Button Styles */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: var(--white);
+            color: var(--secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: var(--white);
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+
+        /* Test Results Styles */
+       .results-section {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+}
+
+.result-output {
+    background-color: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+
+        .result-summary {
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-pass {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .result-fail {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .test-results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .test-results-table th, 
+        .test-results-table td {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .test-results-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+        }
+
+        .test-details-link {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .diff-view {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+        }
+
+        .diff-expected, 
+        .diff-actual {
+            padding: 1rem;
+            border-radius: 0.25rem;
+        }
+
+        .diff-expected {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+
+        .diff-actual {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-card {
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+        }
+
+        .sidebar-content {
+            padding: 1rem;
+        }
+
+        /* Navigation Styles */
+        .question-navigation {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+        }
+
+        .nav-button {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-button:hover {
+            background-color: #f1f5f9;
+        }
+
+        .nav-button.active {
+            background-color: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .nav-button.unanswered {
+            border: 2px solid var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .nav-controls button {
+            flex: 1;
+        }
+
+        /* Submit Container */
+        .submit-container {
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--success);
+            color: var(--white);
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .submit-btn:hover {
+            background-color: #059669;
+        }
+
+        /* Progress Styles */
+        .progress-container {
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 0.5rem;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary);
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            color: var(--secondary);
+        }
+
+        /* Custom Test Section */
+        .custom-test-section {
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+        }
+
+        .custom-input-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            resize: vertical;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Tooltip Styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+body.dark-theme .result-output {
+    background-color: #2d2d3f;
+    border-color: #374151;
+}
+
+.execution-output {
+    background-color: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin: 1rem 0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+body.dark-theme .execution-output {
+    background-color: #1e1e1e;
+    color: #e5e7eb;
+    border-color: #374151;
+}
+
+.execution-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.execution-details {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--secondary);
+}
+
+.execution-details p {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--dark);
+            color: var(--white);
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Dark Mode Toggle */
+        .dark-mode-toggle {
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            background-color: transparent;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .dark-mode-toggle:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .main-container {
+                margin: 1rem auto;
+                padding: 0 0.75rem;
+            }
+
+            .question-header {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .question-content {
+                padding: 1rem;
+            }
+
+            .diff-view {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <p id="camneed" hidden><%=exam.settings.camera%></p>
+    <p id="user" hidden><%=user._id%></p>
+<p id="exam" hidden><%=exam._id%></p>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="header-logo">
+                <i class="fas fa-graduation-cap"></i> PrepZer0 Exam
+            </div>
+            <div class="header-title" id="examTitle">Loading exam...</div>
+        </div>
+        <div class="header-right">
+            <div class="timer-display" id="examTimer">
+                <i class="fas fa-clock"></i> --:--:--
+            </div>
+            <div class="dark-mode-toggle" id="darkModeToggle">
+                <i class="fas fa-moon"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Question Panel -->
+        <div class="question-panel">
+            <div class="question-header">
+                <div class="question-number" id="questionNumber">Question</div>
+                <div class="question-badges" id="questionBadges"></div>
+            </div>
+            <div class="question-content" id="questionContainer">
+                <div class="loading-container">
+                    <p>Loading question...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Navigation Card -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <i class="fas fa-map-marker-alt"></i> Question Navigation
+                </div>
+                <div class="sidebar-content">
+                    <div class="question-navigation" id="questionNavigation"></div>
+                    
+                    <div class="nav-controls">
+                        <button class="btn btn-secondary" id="prevQuestion" disabled>
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button class="btn btn-secondary" id="nextQuestion" disabled>
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Card -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <i class="fas fa-tasks"></i> Exam Progress
+                </div>
+                <div class="sidebar-content">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="answeredQuestions">0 answered</span>
+                            <span id="totalQuestions">0 total</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exam Info Card -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <i class="fas fa-info-circle"></i> Exam Information
+                </div>
+                <div class="sidebar-content">
+                    <p><strong>Duration:</strong> <span id="examDuration">--</span></p>
+                    <p><strong>Type:</strong> <span id="examType">--</span></p>
+                    <div class="tooltip">
+                        <i class="fas fa-question-circle"></i>
+                        <span class="tooltip-text">Questions marked with a red border are unanswered</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Card -->
+            <div class="sidebar-card">
+                <div class="submit-container">
+                    <button class="submit-btn" id="submitExam">
+                        <i class="fas fa-paper-plane"></i> Submit Exam
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+
+    /**
+ * Camera Permission Handler for Exam Portal
+ * 
+ * This script handles camera permission checking and requesting
+ * before allowing users to start the exam.
+ */
+
+const CameraPermissionHandler = (function() {
+    let cameraStream = null;
+    let permissionGranted = false;
+    
+    /**
+     * Check if camera permissions are granted
+     */
+    async function checkCameraPermission() {
+        try {
+            // First check if navigator.permissions is supported (not available in all browsers)
+            if (navigator.permissions && navigator.permissions.query) {
+                const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+                console.log('Camera permission status:', permissionStatus.state);
+                
+                if (permissionStatus.state === 'granted') {
+                    return await testCameraAccess();
+                } else if (permissionStatus.state === 'denied') {
+                    return false;
+                } else {
+                    // Permission is 'prompt' - need to request access
+                    return await requestCameraAccess();
+                }
+            } else {
+                // Fallback: Try to access camera directly
+                return await testCameraAccess();
+            }
+        } catch (error) {
+            console.error('Error checking camera permission:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Test camera access by trying to get media stream
+     */
+    async function testCameraAccess() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 320 },
+                    height: { ideal: 240 },
+                    facingMode: "user"
+                } 
+            });
+            
+            // Stop the stream immediately after testing
+            stream.getTracks().forEach(track => track.stop());
+            console.log('Camera access test successful');
+            return true;
+        } catch (error) {
+            console.error('Camera access test failed:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Request camera access from user
+     */
+    async function requestCameraAccess() {
+        try {
+            showCameraRequestModal();
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 320 },
+                    height: { ideal: 240 },
+                    facingMode: "user"
+                } 
+            });
+            
+            // Store the stream for later use
+            cameraStream = stream;
+            permissionGranted = true;
+            
+            hideCameraRequestModal();
+            showSuccessMessage('Camera access granted successfully!');
+            
+            return true;
+        } catch (error) {
+            console.error('Camera access request failed:', error);
+            hideCameraRequestModal();
+            
+            if (error.name === 'NotAllowedError') {
+                showCameraErrorModal('Camera access denied. Please enable camera access in your browser settings and refresh the page.');
+            } else if (error.name === 'NotFoundError') {
+                showCameraErrorModal('No camera found. Please connect a camera and try again.');
+            } else if (error.name === 'NotReadableError') {
+                showCameraErrorModal('Camera is being used by another application. Please close other applications and try again.');
+            } else {
+                showCameraErrorModal('Failed to access camera. Please check your camera settings and try again.');
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
+     * Show camera request modal
+     */
+    function showCameraRequestModal() {
+        const modal = document.createElement('div');
+        modal.id = 'cameraRequestModal';
+        modal.className = 'camera-modal-overlay';
+        modal.innerHTML = `
+            <div class="camera-modal-content">
+                <div class="camera-modal-header">
+                    <h3><i class="fas fa-video"></i> Camera Access Required</h3>
+                </div>
+                <div class="camera-modal-body">
+                    <p>This exam requires camera access for monitoring purposes.</p>
+                    <p>Please allow camera access when prompted by your browser.</p>
+                    <div class="camera-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Requesting camera access...</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    /**
+     * Hide camera request modal
+     */
+    function hideCameraRequestModal() {
+        const modal = document.getElementById('cameraRequestModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+    
+    /**
+     * Show camera error modal
+     */
+    function showCameraErrorModal(message) {
+        const modal = document.createElement('div');
+        modal.id = 'cameraErrorModal';
+        modal.className = 'camera-modal-overlay';
+        modal.innerHTML = `
+            <div class="camera-modal-content camera-error">
+                <div class="camera-modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Camera Access Error</h3>
+                </div>
+                <div class="camera-modal-body">
+                    <p>${message}</p>
+                    <div class="camera-instructions">
+                        <h4>To enable camera access:</h4>
+                        <ul>
+                            <li><strong>Chrome/Safari:</strong> Click the camera icon in the address bar</li>
+                            <li><strong>Firefox:</strong> Click on the shield icon in the address bar</li>
+                            <li><strong>Edge:</strong> Click on the lock icon in the address bar</li>
+                        </ul>
+                        <p>After enabling camera access, please refresh the page and try again.</p>
+                    </div>
+                </div>
+                <div class="camera-modal-footer">
+                    <button id="tryAgainBtn" class="btn btn-primary">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                    <button id="refreshPageBtn" class="btn btn-secondary">
+                        <i class="fas fa-refresh"></i> Refresh Page
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add event listeners
+        document.getElementById('tryAgainBtn').addEventListener('click', async () => {
+            modal.remove();
+            await initializeCameraCheck();
+        });
+        
+        document.getElementById('refreshPageBtn').addEventListener('click', () => {
+            window.location.reload();
+        });
+    }
+    
+    /**
+     * Show success message
+     */
+    function showSuccessMessage(message) {
+        const notification = document.createElement('div');
+        notification.className = 'camera-notification camera-success';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-check-circle"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+    
+    /**
+     * Update start exam button state
+     */
+    function updateStartExamButton(enabled) {
+        const startButton = document.getElementById('startExamButton');
+        if (startButton) {
+            startButton.disabled = !enabled;
+            
+            if (enabled) {
+                startButton.innerHTML = '<i class="fas fa-play"></i> Start Exam';
+                startButton.classList.remove('disabled');
+            } else {
+                startButton.innerHTML = '<i class="fas fa-video"></i> Camera Access Required';
+                startButton.classList.add('disabled');
+            }
+        }
+    }
+    
+    /**
+     * Show camera status in the UI
+     */
+    function updateCameraStatus(status, message) {
+        let statusElement = document.getElementById('cameraStatus');
+        
+        if (!statusElement) {
+            statusElement = document.createElement('div');
+            statusElement.id = 'cameraStatus';
+            statusElement.className = 'camera-status';
+            
+            // Insert before the start button
+            const startButton = document.getElementById('startExamButton');
+            if (startButton && startButton.parentNode) {
+                startButton.parentNode.insertBefore(statusElement, startButton);
+            }
+        }
+        
+        const iconClass = status === 'success' ? 'fa-check-circle' : 
+                         status === 'error' ? 'fa-exclamation-circle' : 'fa-spinner fa-spin';
+        
+        statusElement.className = `camera-status camera-status-${status}`;
+        statusElement.innerHTML = `
+            <i class="fas ${iconClass}"></i>
+            <span>${message}</span>
+        `;
+    }
+    
+    /**
+     * Initialize camera permission check
+     */
+    async function initializeCameraCheck() {
+        updateCameraStatus('checking', 'Checking camera access...');
+        updateStartExamButton(false);
+        
+        try {
+            const hasPermission = await checkCameraPermission();
+            
+            if (hasPermission) {
+                permissionGranted = true;
+                updateCameraStatus('success', 'Camera access granted');
+                updateStartExamButton(true);
+                return true;
+            } else {
+                updateCameraStatus('error', 'Camera access required');
+                updateStartExamButton(false);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error during camera initialization:', error);
+            updateCameraStatus('error', 'Camera access error');
+            updateStartExamButton(false);
+            return false;
+        }
+    }
+    
+    /**
+     * Get the camera stream (if already granted)
+     */
+    function getCameraStream() {
+        return cameraStream;
+    }
+    
+    /**
+     * Check if permission is granted
+     */
+    function isPermissionGranted() {
+        return permissionGranted;
+    }
+    
+    /**
+     * Clean up camera resources
+     */
+    function cleanup() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+        permissionGranted = false;
+    }
+    
+    // Return public API
+    return {
+        initialize: initializeCameraCheck,
+        checkPermission: checkCameraPermission,
+        requestAccess: requestCameraAccess,
+        getCameraStream: getCameraStream,
+        isPermissionGranted: isPermissionGranted,
+        cleanup: cleanup
+    };
+})();
+
+// CSS Styles for camera permission modals and notifications
+const cameraStyles = `
+    .camera-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .camera-modal-content {
+        background-color: white;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+    }
+    
+    .camera-modal-content.camera-error {
+        max-width: 600px;
+    }
+    
+    .camera-modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        background-color: #f9fafb;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .camera-modal-header h3 {
+        margin: 0;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .camera-modal-body {
+        padding: 1.5rem;
+    }
+    
+    .camera-modal-body p {
+        margin-bottom: 1rem;
+        color: #4b5563;
+        line-height: 1.6;
+    }
+    
+    .camera-loading {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: #2563eb;
+        font-weight: 500;
+        margin-top: 1rem;
+    }
+    
+    .camera-instructions {
+        background-color: #f3f4f6;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+    }
+    
+    .camera-instructions h4 {
+        margin: 0 0 0.75rem 0;
+        color: #1f2937;
+    }
+    
+    .camera-instructions ul {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+    
+    .camera-instructions li {
+        margin-bottom: 0.5rem;
+        color: #4b5563;
+    }
+    
+    .camera-modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+    
+    .camera-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        font-weight: 500;
+    }
+    
+    .camera-status-checking {
+        background-color: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+    }
+    
+    .camera-status-success {
+        background-color: #d1fae5;
+        color: #065f46;
+        border: 1px solid #6ee7b7;
+    }
+    
+    .camera-status-error {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+    }
+    
+    .camera-notification {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        max-width: 300px;
+        z-index: 9999;
+        border-radius: 6px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateX(110%);
+        transition: transform 0.3s ease;
+    }
+    
+    .camera-notification.show {
+        transform: translateX(0);
+    }
+    
+    .camera-notification .notification-content {
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .camera-success .notification-content {
+        background-color: #ecfdf5;
+        color: #064e3b;
+        border-left: 4px solid #10b981;
+    }
+    
+    .start-exam-button.disabled {
+        background-color: #9ca3af !important;
+        cursor: not-allowed !important;
+        opacity: 0.6;
+    }
+    
+    .start-exam-button.disabled:hover {
+        background-color: #9ca3af !important;
+        transform: none !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Dark theme styles */
+    body.dark-theme .camera-modal-content {
+        background-color: #1f2937;
+        color: #e5e7eb;
+    }
+    
+    body.dark-theme .camera-modal-header {
+        background-color: #374151;
+        border-color: #4b5563;
+    }
+    
+    body.dark-theme .camera-modal-header h3 {
+        color: #e5e7eb;
+    }
+    
+    body.dark-theme .camera-modal-body p {
+        color: #d1d5db;
+    }
+    
+    body.dark-theme .camera-instructions {
+        background-color: #374151;
+    }
+    
+    body.dark-theme .camera-instructions h4 {
+        color: #e5e7eb;
+    }
+    
+    body.dark-theme .camera-instructions li {
+        color: #d1d5db;
+    }
+    
+    body.dark-theme .camera-modal-footer {
+        border-color: #4b5563;
+    }
+`;
+
+// Add styles to document
+const cameraStyleElement = document.createElement('style');
+cameraStyleElement.textContent = cameraStyles;
+document.head.appendChild(cameraStyleElement);
+// Integration function to modify the existing startExam function
+function integrateWithExistingExam() {
+    // Store the original startExam function
+    const originalStartExam = window.startExam;
+    
+    // Override the startExam function
+    window.startExam = function() {
+        // Check if camera permission is granted before starting
+        if (!CameraPermissionHandler.isPermissionGranted()) {
+            alert('Camera access is required to start the exam. Please grant camera permission first.');
+            return;
+        }
+        
+        // Call the original startExam function
+        if (originalStartExam) {
+            originalStartExam.call(this);
+        }
+    };
+    
+    // Initialize camera check when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit for the start overlay to be created
+        needcam =document.getElementById('camneed').innerHTML;
+        if(needcam === 'false') {
+            
+        }else{
+        setTimeout(() => {
+            CameraPermissionHandler.initialize();
+        }, 500);
+        }
+
+    });
+}
+
+if (typeof window !== 'undefined') {
+    if(document.getElementById("camneed").innerHTML == 'true'){
+        integrateWithExistingExam();
+    }
+    
+}
+</script>
+
+
+    <script>
+
+/**
+ * Exam Integrity Monitoring Module
+ * 
+ * This module provides functionality for:
+ * 1. Integrity monitoring (tab changes, mouse exits, fullscreen controls,  etc.)
+ * 2. Activity ping tracking to server
+ * 3. Webcam capture and submission
+ * 
+ * Usage: Include this script and initialize with examIntegrity.init()
+ */
+
+const examIntegrity = (function() {
+    // Configuration
+    const config = {
+        maxViolations: 999,                // Maximum violations before auto-submit
+        maxRefreshes: 999,                 // Maximum allowed page refreshes
+        pingInterval: 20000,             // Ping interval in ms (20 seconds)
+        tabFocusCooldown: 1000,          // Time between focus events in ms
+        webcamCaptureInterval: 5000,     // Webcam capture interval in ms
+        resizeCooldown: 500,             // Time between resize events in ms
+        maxResizeAttempts: 999             // Maximum resize attempts before violation
+    };
+
+    // State variables
+    let state = {
+        examStarted: false,
+        isFullscreenActive: false,
+        lastTabFocusTime: 0,
+        pingIntervalId: null,
+        resizeAttempts: 0,
+        lastResizeTime: 0,
+        submitting: false,
+        autoSubmitCallback: null,        // Callback when auto submitting
+        
+        // Violation counters
+        violations: {
+            tabChangeCount: 0,
+            mouseOutCount: 0,
+            fullscreenExitCount: 0,
+         
+            focusChangeCount: 0,
+            refreshViolationCount: 0
+        },
+        totalViolations: 0
+    };
+
+    // DOM Elements (to be initialized)
+    let elements = {
+        tabChangeCount: null,
+        mouseOutCount: null,
+        fullscreenExitCount: null,
+        focusChangeCount: null,
+        refreshViolationCount: null,
+        totalViolations: null,
+        lastEvent: null,
+        notificationContainer: null
+    };
+
+    // URLs for API endpoints
+    const apiEndpoints = {
+        integrityUpdate: '/update-integrity',
+        activityPing: '/dashboard/see-active',
+        saveImage: '/save-image'
+    };
+
+    // User and exam info
+    let examInfo = {
+        examId: null,
+        userId: null
+    };
+
+    /**
+     * Initialize the integrity module
+     * @param {Object} options Configuration options
+     */
+    function init(options = {}) {
+        console.log('Initializing exam integrity module...');
+        
+        // Merge options with defaults
+        if (options.config) {
+            Object.assign(config, options.config);
+        }
+        
+        // Set exam info
+        if (options.examId) examInfo.examId = options.examId;
+        if (options.userId) examInfo.userId = options.userId;
+        
+        // Initialize from localStorage if available
+        state.examStarted = localStorage.getItem('examStarted') === 'true';
+        
+        // Auto-submit callback
+        if (options.onAutoSubmit && typeof options.onAutoSubmit === 'function') {
+            state.autoSubmitCallback = options.onAutoSubmit;
+        }
+        
+        // Set API endpoints
+        if (options.apiEndpoints) {
+            Object.assign(apiEndpoints, options.apiEndpoints);
+        }
+        
+        // Initialize UI elements
+        initElements();
+        
+        // Initialize event listeners
+        if (state.examStarted) {
+            setupEventListeners();
+            handleRefreshDetection();
+            startActivityPing();
+            
+            if (options.startWebcam) {
+                if(document.getElementById('camneed').innerHTML == 'true'){
+                    startWebcamCapture();
+                }
+                
+            }
+        }
+        
+        // Add style for notifications
+        const style = document.createElement('style');
+        style.id = 'notificationAnimations';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        return {
+            start,
+            stop,
+            enterFullscreen,
+            handleRefreshDetection,
+            startWebcamCapture,
+            showNotification,
+            getViolationCounts,
+            preventBackButton
+        };
+    }
+
+    /**
+     * Initialize UI elements
+     */
+    function initElements() {
+        // Get DOM elements for counters
+        elements.tabChangeCount = document.getElementById('tabChangeCount');
+        elements.mouseOutCount = document.getElementById('mouseOutCount');
+        elements.fullscreenExitCount = document.getElementById('fullscreenExitCount');
+      
+        elements.focusChangeCount = document.getElementById('focusChangeCount');
+        elements.refreshViolationCount = document.getElementById('refreshViolationCount');
+        elements.totalViolations = document.getElementById('totalViolations');
+        elements.lastEvent = document.getElementById('lastEvent');
+        
+        // Create notification container if it doesn't exist
+        elements.notificationContainer = document.getElementById('notificationContainer');
+        if (!elements.notificationContainer) {
+            elements.notificationContainer = document.createElement('div');
+            elements.notificationContainer.id = 'notificationContainer';
+            elements.notificationContainer.style.position = 'fixed';
+            elements.notificationContainer.style.top = '10px';
+            elements.notificationContainer.style.right = '10px';
+            elements.notificationContainer.style.zIndex = '9999';
+            document.body.appendChild(elements.notificationContainer);
+        }
+    }
+
+    /**
+     * Start integrity monitoring
+     */
+    function start(examId, userId) {
+        if (examId) examInfo.examId = examId;
+        if (userId) examInfo.userId = userId;
+        
+        state.examStarted = true;
+        localStorage.setItem('examStarted', 'true');
+        localStorage.setItem('examRefreshCount', '0');
+        
+        setupEventListeners();
+        startActivityPing();
+        preventBackButton();
+        enterFullscreen();
+        
+        updateUI();
+        updateStatus('Exam integrity monitoring started');
+    }
+
+    /**
+     * Stop integrity monitoring
+     */
+    function stop() {
+        state.examStarted = false;
+        localStorage.removeItem('examStarted');
+        localStorage.removeItem('examRefreshCount');
+        
+        if (state.pingIntervalId) {
+            clearInterval(state.pingIntervalId);
+            state.pingIntervalId = null;
+        }
+        
+        updateStatus('Exam integrity monitoring stopped');
+    }
+
+    /**
+     * Setup event listeners for integrity monitoring
+     */
+    function setupEventListeners() {
+        // Fullscreen change events
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+        
+        // Tab visibility and focus events
+        document.addEventListener('visibilitychange', handleTabChange);
+        window.addEventListener('blur', handleFocusChange);
+        window.addEventListener('focus', handleFocusChange);
+        
+        // Mouse exit detection
+        document.addEventListener('mouseout', handleMouseOut);
+        
+     
+       
+        
+        // Keyboard shortcuts prevention
+        document.addEventListener('keydown', preventKeyboardShortcuts);
+        
+        // Prevent context menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Window resize detection (potential DevTools)
+        window.addEventListener('resize', handleResize);
+        
+        // Before unload warning
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        // Ensure fullscreen on click
+        document.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && 
+                !document.mozFullScreenElement && !document.msFullscreenElement && 
+                state.examStarted) {
+                enterFullscreen();
+                updateStatus("Fullscreen mode ensured after click");
+            }
+        });
+    }
+
+    /**
+     * Prevent keyboard shortcuts
+     */
+    function preventKeyboardShortcuts(e) {
+        if (!state.examStarted) return;
+        
+        // Prevent dev tools and refresh shortcuts
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) || 
+            (e.ctrlKey && e.key === 'U') ||
+            e.key === 'F5' || 
+            ((e.metaKey || e.ctrlKey) && e.key === 'r') ||
+            e.key === 'F11' || 
+            (e.metaKey && e.shiftKey && e.key === 'f') ||
+            (e.altKey && e.key === 'Tab') ||
+            (e.metaKey && e.key === 'w') || 
+            (e.key === 'F4' && e.altKey)) {
+            
+            e.preventDefault();
+            e.stopPropagation();
+            showNotification("This action is not allowed during the exam.");
+            return false;
+        }
+        
+        // If Escape key is pressed, prevent default action and re-enter fullscreen
+        if (e.key === 'Escape' && state.examStarted) {
+            e.preventDefault();
+            // Small delay to ensure the fullscreen exit completes first
+            setTimeout(enterFullscreen, 100);
+            return false;
+        }
+    }
+
+    /**
+     * Prevent back button
+     */
+    function preventBackButton() {
+        window.history.pushState(null, "", window.location.href);
+        window.onpopstate = function() {
+            window.history.pushState(null, "", window.location.href);
+        };
+    }
+
+    /**
+     * Update UI with violation counts
+     */
+    function updateUI() {
+        if (!state.examStarted) return;
+        
+        // Update DOM elements if they exist
+        if (elements.tabChangeCount) elements.tabChangeCount.textContent = state.violations.tabChangeCount;
+        if (elements.mouseOutCount) elements.mouseOutCount.textContent = state.violations.mouseOutCount;
+        if (elements.fullscreenExitCount) elements.fullscreenExitCount.textContent = state.violations.fullscreenExitCount;
+      
+        if (elements.focusChangeCount) elements.focusChangeCount.textContent = state.violations.focusChangeCount;
+        if (elements.refreshViolationCount) elements.refreshViolationCount.textContent = state.violations.refreshViolationCount;
+        if (elements.totalViolations) elements.totalViolations.textContent = state.totalViolations;
+    }
+
+    /**
+     * Update status message
+     */
+    function updateStatus(message) {
+        if (!state.examStarted) return;
+        
+        if (elements.lastEvent) {
+            elements.lastEvent.textContent = message;
+        }
+        console.log('Integrity status:', message);
+    }
+
+    /**
+     * Handle tab change events
+     */
+    function handleTabChange() {
+        if (!state.examStarted) return;
+        
+        if (document.hidden) {
+            // Only count tab change if it's not immediately after a focus change
+            const currentTime = Date.now();
+            if (currentTime - state.lastTabFocusTime > config.tabFocusCooldown) {
+                state.violations.tabChangeCount++;
+                state.totalViolations++;
+                sendIntegrityUpdate("tabChanges");
+                updateStatus("Tab change detected");
+                updateUI();
+                checkAndTriggerAutoSubmit();
+            }
+        }
+    }
+
+    /**
+     * Handle mouse leaving the window
+     */
+    function handleMouseOut(event) {
+        if (!state.examStarted) return;
+        
+        // Check if mouse actually left the window
+        if (event.clientX < 0 || event.clientX > window.innerWidth - 1 || 
+            event.clientY < 0 || event.clientY > window.innerHeight - 1) {
+            state.violations.mouseOutCount++;
+            state.totalViolations++;
+            sendIntegrityUpdate("mouseOuts");
+            updateStatus("Mouse left workspace");
+            showNotification("Mouse Going Out is not allowed");
+            updateUI();
+            checkAndTriggerAutoSubmit();
+        }
+    }
+
+    /**
+     * Handle window focus changes
+     */
+    function handleFocusChange(event) {
+        if (!state.examStarted) return;
+        
+        if (event.type === 'blur') {
+            // Only count focus change if it's not immediately after a tab change
+            const currentTime = Date.now();
+            if (currentTime - state.lastTabFocusTime > config.tabFocusCooldown) {
+                state.violations.focusChangeCount++;
+                state.lastTabFocusTime = currentTime;
+                
+                // Check if this is coming from a tab change or standalone focus change
+                if (!document.hidden) {
+                    // If document is not hidden, this is a standalone focus change
+                    state.totalViolations++;
+                    sendIntegrityUpdate("focusChanges");
+                    updateStatus("Focus change detected");
+                    updateUI();
+                    checkAndTriggerAutoSubmit();
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle fullscreen change events
+     */
+    function handleFullscreenChange() {
+        if (!state.examStarted) return;
+        
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && 
+            !document.mozFullScreenElement && !document.msFullscreenElement) {
+            state.violations.fullscreenExitCount++;
+            state.totalViolations++;
+            showNotification("Exiting fullscreen is not allowed during the exam.");
+            
+            // Give a short delay before forcing back to fullscreen (helps with Mac transition)
+            setTimeout(enterFullscreen, 500);
+            
+            sendIntegrityUpdate("fullscreenExits");
+            updateStatus("Fullscreen exited");
+            updateUI();
+            checkAndTriggerAutoSubmit();
+        } else {
+            if (!state.isFullscreenActive) {
+                state.isFullscreenActive = true;
+            }
+            updateStatus("Fullscreen entered");
+        }
+    }
+
+    /**
+     * Enter fullscreen mode
+     */
+    function enterFullscreen() {
+        const elem = document.documentElement;
+        
+        // Don't attempt to enter fullscreen if already in fullscreen mode
+        if (document.fullscreenElement || document.webkitFullscreenElement || 
+            document.mozFullScreenElement || document.msFullscreenElement) {
+            return;
+        }
+        
+        try {
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { // Safari
+                elem.webkitRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) { // Firefox
+                elem.mozRequestFullScreen();
+            } else if (elem.msRequestFullscreen) { // IE/Edge
+                elem.msRequestFullscreen();
+            }
+        } catch (error) {
+            console.error("Fullscreen error:", error);
+            showNotification("Fullscreen mode failed. Please try again.");
+        }
+    }
+
+  
+    /**
+     * Handle resize events (potential DevTools)
+     */
+    function handleResize() {
+        if (!state.examStarted) return;
+        
+        const currentTime = Date.now();
+        
+        // Check if we're within the cooldown period
+        if (currentTime - state.lastResizeTime < config.resizeCooldown) {
+            // Count this as another attempt within the same period
+            state.resizeAttempts++;
+            
+            // Check if max attempts exceeded
+            if (state.resizeAttempts >= config.maxResizeAttempts) {
+                // Only show notification and count as violation if not due to Mac-specific events
+                if (Math.abs(window.innerHeight - window.screen.height) > 100) {
+                    showNotification(`DevTools detected! Your exam is being monitored.`, 'error');
+                    state.totalViolations++;
+                    sendIntegrityUpdate("resizeViolations");
+                    updateStatus("Multiple suspicious resize events detected");
+                    updateUI();
+                    
+                    // Show the violation modal and trigger auto-submit
+                    showViolationModal(() => {
+                        if (state.autoSubmitCallback) {
+                            state.autoSubmitCallback("resize_violations");
+                        }
+                    });
+                }
+            }
+        } else {
+            // First resize attempt in a new period
+            state.resizeAttempts = 1;
+            
+            if (state.resizeAttempts > 1) {
+                showNotification(`Window resize detected. This is being monitored.`);
+            }
+        }
+        
+        // Update the timestamp
+        state.lastResizeTime = currentTime;
+        
+        // Check if total violations are too high
+        checkAndTriggerAutoSubmit();
+    }
+
+    /**
+     * Handle beforeunload event
+     */
+    function handleBeforeUnload(e) {
+        if (!state.examStarted) return;
+        
+        if (state.pingIntervalId) {
+            clearInterval(state.pingIntervalId);
+            
+            // Send final ping with status=inactive
+            fetch(apiEndpoints.activityPing, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    examId: examInfo.examId,
+                    userId: examInfo.userId,
+                    timestamp: new Date().toISOString(),
+                    status: 'inactive'
+                }),
+                keepalive: true
+            });
+        }
+        
+        if (state.submitting) {
+            return;
+        }
+        
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+    }
+
+    /**
+     * Handle refresh detection
+     */
+    function handleRefreshDetection() {
+        // Check if there's a saved refresh count
+        let refreshCount = parseInt(localStorage.getItem('examRefreshCount') || '0');
+        
+        if (state.examStarted) {
+            refreshCount++;
+            localStorage.setItem('examRefreshCount', refreshCount.toString());
+        }
+        
+        // Count this as a violation if it's not the first load
+        if (refreshCount > 1) {
+            state.violations.refreshViolationCount = refreshCount - 1; // Don't count the initial load
+            state.totalViolations += 1; // Increment total violations by 1 for this refresh
+            
+            // Send refresh event to server for logging
+            sendIntegrityUpdate("pageRefresh");
+            updateStatus("Page refresh detected");
+            updateUI();
+            
+            // Check if exceeded maximum allowed refreshes
+            if (refreshCount > config.maxRefreshes) {
+                showNotification(`Maximum page refreshes (${config.maxRefreshes}) exceeded. Your exam is being submitted.`, 'error');
+                
+                if (state.autoSubmitCallback) {
+                    state.autoSubmitCallback("excessive_refreshes");
+                }
+                
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Check and trigger auto-submit if violations are too high
+     */
+    function checkAndTriggerAutoSubmit() {
+        if (!state.examStarted) return;
+        
+        if (state.totalViolations >= config.maxViolations) {
+            updateStatus("Auto-submitting test due to integrity violations");
+            const modalOverlay = showViolationModal(() => {
+                if (state.autoSubmitCallback) {
+                    state.autoSubmitCallback("integrity_violations");
+                }
+            });
+        }
+    }
+
+    /**
+     * Show violation modal
+     */
+    function showViolationModal(callback) {
+        // Create modal container
+        const modalOverlay = document.createElement('div');
+        modalOverlay.style.position = 'fixed';
+        modalOverlay.style.top = '0';
+        modalOverlay.style.left = '0';
+        modalOverlay.style.width = '100%';
+        modalOverlay.style.height = '100%';
+        modalOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        modalOverlay.style.display = 'flex';
+        modalOverlay.style.justifyContent = 'center';
+        modalOverlay.style.alignItems = 'center';
+        modalOverlay.style.zIndex = '10000';
+        
+        // Create modal content
+        const modalContent = document.createElement('div');
+        modalContent.style.backgroundColor = '#fff';
+        modalContent.style.padding = '25px';
+        modalContent.style.borderRadius = '10px';
+        modalContent.style.maxWidth = '500px';
+        modalContent.style.width = '80%';
+        modalContent.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
+        modalContent.style.textAlign = 'center';
+        
+        // Add warning icon
+        const warningIcon = document.createElement('div');
+        warningIcon.innerHTML = '⚠️';
+        warningIcon.style.fontSize = '4rem';
+        warningIcon.style.marginBottom = '15px';
+        modalContent.appendChild(warningIcon);
+        
+        // Add title
+        const title = document.createElement('h2');
+        title.textContent = 'Critical Violation Alert';
+        title.style.color = '#d9534f';
+        title.style.marginBottom = '15px';
+        modalContent.appendChild(title);
+        
+        // Add message
+        const message = document.createElement('p');
+        message.textContent = `You have committed ${state.totalViolations} or more integrity violations. Your exam will be automatically submitted.`;
+        message.style.marginBottom = '20px';
+        message.style.fontSize = '1.1rem';
+        message.style.color = '#000';
+        modalContent.appendChild(message);
+        
+        // Add violations list
+        const violationsList = document.createElement('div');
+        violationsList.style.textAlign = 'left';
+        violationsList.style.marginBottom = '20px';
+        violationsList.style.padding = '10px';
+        violationsList.style.backgroundColor = '#f8d7da';
+        violationsList.style.borderRadius = '5px';
+        violationsList.style.color = '#000';
+        
+        let violationsHTML = '<strong>Violations detected:</strong><ul style="margin-top: 10px;">';
+        
+        // Add each violation type with count
+        if (state.violations.tabChangeCount > 0) violationsHTML += `<li>Tab changes: ${state.violations.tabChangeCount}</li>`;
+        if (state.violations.mouseOutCount > 0) violationsHTML += `<li>Mouse left window: ${state.violations.mouseOutCount}</li>`;
+        if (state.violations.fullscreenExitCount > 0) violationsHTML += `<li>Fullscreen exits: ${state.violations.fullscreenExitCount}</li>`;
+       
+        if (state.violations.focusChangeCount > 0) violationsHTML += `<li>Focus changes: ${state.violations.focusChangeCount}</li>`;
+        if (state.violations.refreshViolationCount > 0) violationsHTML += `<li>Page refreshes: ${state.violations.refreshViolationCount}</li>`;
+        
+        violationsHTML += '</ul>';
+        violationsList.innerHTML = violationsHTML;
+        modalContent.appendChild(violationsList);
+        
+        // Add countdown text
+        const countdown = document.createElement('p');
+        countdown.textContent = 'Submitting exam in 5 seconds...';
+        countdown.style.fontWeight = 'bold';
+        countdown.style.color = '#000';
+        modalContent.appendChild(countdown);
+        
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+        
+        // Start countdown
+        let seconds = 5;
+        const countdownInterval = setInterval(() => {
+            seconds--;
+            countdown.textContent = `Submitting exam in ${seconds} second${seconds !== 1 ? 's' : ''}...`;
+            
+            if (seconds <= 0) {
+                clearInterval(countdownInterval);
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
+            }
+        }, 1000);
+        
+        return modalOverlay;
+    }
+
+    /**
+     * Show notification
+     */
+    function showNotification(message, type = 'warning') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.style.backgroundColor = type === 'warning' ? '#fff3cd' : '#f8d7da';
+        notification.style.color = type === 'warning' ? '#856404' : '#721c24';
+        notification.style.padding = '10px 15px';
+        notification.style.marginBottom = '10px';
+        notification.style.borderRadius = '4px';
+        notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        notification.style.width = '300px';
+        notification.style.animation = 'fadeIn 0.3s ease-out';
+        notification.innerHTML = message;
+        
+        // Add to container
+        elements.notificationContainer.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s ease-in';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+        
+        return notification;
+    }
+
+    /**
+     * Send integrity update to server
+     */
+    function sendIntegrityUpdate(eventType) {
+        if (!state.examStarted) return;
+        
+        const data = {
+            examId: examInfo.examId,
+            userId: examInfo.userId,
+            eventType: eventType
+        };
+
+        fetch(apiEndpoints.integrityUpdate, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => console.log('Integrity event logged:', data))
+        .catch(error => console.error('Error sending integrity update:', error));
+    }
+
+    /**
+     * Start sending activity pings to server
+     */
+    function startActivityPing() {
+        if (state.pingIntervalId) {
+            clearInterval(state.pingIntervalId);
+        }
+        
+        // Send initial ping
+        sendActivityPing();
+        
+        // Set up interval for regular pings
+        state.pingIntervalId = setInterval(sendActivityPing, config.pingInterval);
+    }
+
+    /**
+     * Send activity ping to server
+     */
+    function sendActivityPing() {
+        if (!state.examStarted) return;
+        
+        fetch(apiEndpoints.activityPing, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                examId: examInfo.examId,
+                userId: examInfo.userId,
+                timestamp: new Date().toISOString()
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Failed to send activity ping');
+            }
+        })
+        .catch(error => {
+            console.error('Error sending activity ping:', error);
+        });
+    }
+
+    /**
+     * Start webcam capture
+     */
+    function startWebcamCapture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 240;
+        canvas.style.display = 'none';
+        document.body.appendChild(canvas);
+        
+        const context = canvas.getContext('2d');
+        
+        // Check if media devices API is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.error("MediaDevices API not supported");
+            showNotification("Your browser doesn't support webcam capture. Please use a modern browser.", 'error');
+            return;
+        }
+
+        navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 320 },
+                height: { ideal: 240 },
+                facingMode: "user"
+            } 
+        })
+        .then((stream) => {
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.style.display = 'none';
+            document.body.appendChild(video);
+            video.play();
+            
+            // Wait for video to be ready
+            video.onloadedmetadata = () => {
+                // Set up snapshot interval
+                setInterval(() => {
+                    try {
+                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        
+                        canvas.toBlob((blob) => {
+                            if (!blob) return;
+                            
+                            const formData = new FormData();
+                            formData.append('image', blob, `capture-${Date.now()}.png`);
+                            formData.append('userId', examInfo.userId);
+                            formData.append('examId', examInfo.examId);
+                            
+                            fetch(apiEndpoints.saveImage, { 
+                                method: 'POST',
+                                body: formData,
+                            })
+                            .then(response => response.json())
+                            .then(data => console.log('Image saved:', data))
+                            .catch(error => console.error('Error saving image:', error));
+                        }, 'image/png');
+                    } catch (err) {
+                        console.error("Error capturing webcam frame:", err);
+                    }
+                }, config.webcamCaptureInterval);
+            };
+        })
+        .catch((error) => {
+            console.error("Error accessing webcam:", error);
+            showNotification("Unable to access the webcam. Please ensure your camera is connected and you've allowed permission.", 'error');
+        });
+    }
+
+    /**
+     * Get current violation counts
+     */
+    function getViolationCounts() {
+        return {
+            ...state.violations,
+            totalViolations: state.totalViolations
+        };
+    }
+
+    // Return public API
+    return {
+        init,
+        start,
+        stop,
+        enterFullscreen,
+        handleRefreshDetection,
+        startWebcamCapture,
+        showNotification,
+        getViolationCounts,
+        preventBackButton
+    };
+})();
+
+</script>
+
+
+    <script>
+
+    // Store the exam data in localStorage when the page loads
+    window.addEventListener('DOMContentLoaded', () => {
+        // Assuming 'exam' is passed from the server to the EJS template
+        const examData = <%- JSON.stringify(exam) %>;
+          const mainContainer = document.querySelector('.main-container');
+            const header = document.querySelector('.header');
+             if (mainContainer && header) {
+        mainContainer.style.display = 'none';
+        header.style.display = 'none';
+        
+        // Create start exam overlay
+        const startOverlay = document.createElement('div');
+        startOverlay.className = 'start-exam-overlay';
+        startOverlay.innerHTML = `
+            <div class="start-exam-container">
+                <div class="start-exam-header">
+                    <div class="header-logo">
+                        <i class="fas fa-graduation-cap"></i> Exam Portal
+                    </div>
+                </div>
+                <div class="start-exam-content">
+                    <div class="start-exam-title" id="examTitleStart">Loading exam...</div>
+                    <div class="start-exam-info">
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <span id="examDurationStart">-- minutes</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-tasks"></i>
+                            <span id="examTypeStart">--</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span id="examQuestionsStart">-- questions</span>
+                        </div>
+                    </div>
+                    <div class="start-exam-instructions">
+                        <h3><i class="fas fa-list-ul"></i> Instructions</h3>
+                        <ul>
+                            <li>The timer will start as soon as you begin the exam.</li>
+                            <li>Answer all questions to the best of your ability.</li>
+                            <li>You can navigate between questions using the side panel.</li>
+                            <li>Submit your exam when you're finished.</li>
+                            <li>Don't refresh or leave the page during the exam.</li>
+                        </ul>
+                    </div>
+                    <div class="start-button-container">
+                        <button id="startExamButton" class="start-exam-button">
+                            <i class="fas fa-play"></i> Start Exam
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(startOverlay);
+
+    const userId = document.getElementById('user').textContent;
+    const examId = document.getElementById('exam').textContent;
+    
+    // Initialize the module with configuration
+    const integrity = examIntegrity.init({
+        // Required exam information
+        examId: examId,
+        userId: userId,
+        
+        // Optional: Custom API endpoints
+        apiEndpoints: {
+            integrityUpdate: '/update-integrity',
+            activityPing: '/dashboard/see-active',
+            saveImage: '/save-image'
+        },
+        
+        // Optional: Custom behavior configuration
+        config: {
+            maxViolations: 5,                // Default: 3
+            maxRefreshes: 3,                 // Default: 2
+            pingInterval: 30000,             // Default: 20000 (20 seconds)
+            webcamCaptureInterval: 10000     // Default: 5000 (5 seconds)
+        },
+        
+        // Optional: Callback when violations trigger auto-submit
+        onAutoSubmit: function(reason) {
+            console.log(`Auto-submitting exam due to: ${reason}`);
+            
+            // Your custom submit logic
+            submitExam()
+            
+            // Optional: Redirect after submission
+
+        },
+        
+        // Optional: Start webcam automatically on init
+        startWebcam: false
+    });
+    
+    // Start monitoring when the exam begins
+  
+  
+        
+        // Get exam data and update the title
+if (examData) {
+            document.getElementById('examTitleStart').textContent = examData.name;
+            document.getElementById('examDurationStart').textContent = `${examData.duration} minutes`;
+            
+            // Display exam type
+            let examType = '';
+            if (examData.questionType === "mcq") {
+                examType = 'Multiple Choice';
+            }
+            // } else if (examData.questionType === "coding") {
+            //     examType = 'Coding';
+            // } else if (examData.questionType === "mcq&coding") {
+            //     examType = 'Mixed (MCQ & Coding)';
+            // }
+            document.getElementById('examTypeStart').textContent = examType;
+            
+            // Display question count
+            let totalQuestions = getTotalQuestions(examData);
+            document.getElementById('examQuestionsStart').textContent = `${totalQuestions} questions`;
+        }
+        
+        // Add event listener to start exam button
+        document.getElementById('startExamButton').addEventListener('click', startExam);
+    }
+
+
+
+    function startExam() {
+    // Remove the overlay
+    const startOverlay = document.querySelector('.start-exam-overlay');
+    if (startOverlay) {
+        startOverlay.remove();
+    }
+     
+    // Show the main content
+    const mainContainer = document.querySelector('.main-container');
+    const header = document.querySelector('.header');
+    
+    if (mainContainer && header) {
+        mainContainer.style.display = 'grid';
+        header.style.display = 'flex';
+    }
+    
+    // Initialize the exam
+    initializeExam();
+    
+    // Start the timer
+    const endTime = new Date().getTime() + (JSON.parse(localStorage.getItem('currentExam')).duration * 60 * 1000);
+    localStorage.setItem('examEndTime', endTime.toString());
+
+       const userId = document.getElementById('user').textContent;
+    const examId = document.getElementById('exam').textContent;
+    
+    // Initialize the module with configuration
+    const integrity = examIntegrity.init({
+        // Required exam information
+        examId: examId,
+        userId: userId,
+        
+        // Optional: Custom API endpoints
+        apiEndpoints: {
+            integrityUpdate: '/update-integrity',
+            activityPing: '/dashboard/see-active',
+            saveImage: '/save-image'
+        },
+        
+        // Optional: Custom behavior configuration
+        config: {
+            maxViolations: 999,                // Default: 3
+            maxRefreshes: 999,                 // Default: 2
+            pingInterval: 30000,             // Default: 20000 (20 seconds)
+            webcamCaptureInterval: 10000     // Default: 5000 (5 seconds)
+        },
+        
+        // Optional: Callback when violations trigger auto-submit
+        onAutoSubmit: function(reason) {
+            console.log(`Auto-submitting exam due to: ${reason}`);
+            
+            // Your custom submit logic
+            submitExam()
+            
+            // Optional: Redirect after submission
+
+        },
+        
+        // Optional: Start webcam automatically on init
+        startWebcam: false
+    });
+    
+        // Start the integrity monitoringsss
+        integrity.start();
+        
+        // Start webcam capture if not auto-started
+        if(document.getElementById('camneed').innerHTML == "true") {
+            integrity.startWebcamCapture();
+        }
+        
+        
+        // Enter fullscreen mode
+        integrity.enterFullscreen();
+        
+        // Prevent back button navigation
+        integrity.preventBackButton();
+        
+        // Show example notification
+        integrity.showNotification('Exam has started. Integrity monitoring is active.');
+        
+        // Hide the start button and show exam content
+        this.style.display = 'none';
+        document.getElementById('examContent').style.display = 'block';
+
+    
+    startExamTimer();
+}
+const startExamStyles = `
+    .start-exam-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f3f4f6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        padding: 1rem;
+    }
+
+    body.dark-theme .start-exam-overlay {
+        background-color: #1e1e2d;
+    }
+
+    .start-exam-container {
+        max-width: 800px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        background-color: var(--white);
+        animation: slideUp 0.5s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    body.dark-theme .start-exam-container {
+        background-color: #252636;
+        color: #e5e7eb;
+    }
+
+    .start-exam-header {
+        background-color: var(--primary);
+        color: var(--white);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .start-exam-content {
+        padding: 2rem;
+    }
+
+    .start-exam-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        text-align: center;
+    }
+
+    body.dark-theme .start-exam-title {
+        color: #e5e7eb;
+    }
+
+    .start-exam-info {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background-color: #f8fafc;
+        border-radius: var(--border-radius);
+    }
+
+    body.dark-theme .start-exam-info {
+        background-color: #2d2d3f;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-item i {
+        color: var(--primary);
+        font-size: 1.25rem;
+    }
+
+    .start-exam-instructions {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background-color: #f8fafc;
+        border-radius: var(--border-radius);
+        border-left: 4px solid var(--primary);
+    }
+
+    body.dark-theme .start-exam-instructions {
+        background-color: #2d2d3f;
+    }
+
+    .start-exam-instructions h3 {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary);
+    }
+
+    .start-exam-instructions ul {
+        list-style-type: none;
+        padding-left: 1.5rem;
+    }
+
+    .start-exam-instructions li {
+        margin-bottom: 0.5rem;
+        position: relative;
+    }
+
+    .start-exam-instructions li:before {
+        content: "•";
+        color: var(--primary);
+        font-weight: bold;
+        display: inline-block;
+        width: 1rem;
+        position: absolute;
+        left: -1rem;
+    }
+
+    .start-button-container {
+        display: flex;
+        justify-content: center;
+    }
+
+    .start-exam-button {
+        padding: 1rem 3rem;
+        font-size: 1.25rem;
+        background-color: var(--success);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .start-exam-button:hover {
+        background-color: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .start-exam-button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 768px) {
+        .start-exam-info {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        
+        .start-exam-title {
+            font-size: 1.5rem;
+        }
+        
+        .start-exam-button {
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+        }
+    }
+`;
+
+// Append the styles to the document
+const styleElement = document.createElement('style');
+styleElement.textContent += startExamStyles;
+document.head.appendChild(styleElement);
+        // Store the entire exam object
+        localStorage.setItem('currentExam', JSON.stringify(examData));
+        
+        // Store questions separately for easier access
+        if (examData.questionType === "mcq") {
+            localStorage.setItem('mcqQuestions', JSON.stringify(examData.mcqQuestions));
+        }
+      
+        
+        // Initialize current question index
+        localStorage.setItem('currentQuestionIndex', '0');
+        
+        // Initialize timer if exam has duration
+        if (examData.duration) {
+            const endTime = new Date().getTime() + (examData.duration * 60 * 1000);
+            localStorage.setItem('examEndTime', endTime.toString());
+        }
+        
+        // Initialize empty answers object
+        const emptyAnswers = {
+            mcq: {},
+            coding: {}
+        };
+        localStorage.setItem('examAnswers', JSON.stringify(emptyAnswers));
+        
+        // Set up dark mode toggle
+        setupDarkModeToggle();
+        
+        // Trigger the exam initialization
+        initializeExam();
+    });
+
+    // Function to set up dark mode toggle
+    function setupDarkModeToggle() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        // Check if user has a preference stored
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        } else if (currentTheme === 'light') {
+            document.body.classList.remove('dark-theme');
+            document.body.
+            darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        } else if (prefersDarkScheme.matches) {
+            document.body.classList.add('dark-theme');
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+        
+        darkModeToggle.addEventListener('click', () => {
+            if (document.body.classList.contains('dark-theme')) {
+                document.body.classList.remove('dark-theme');
+                darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.body.classList.add('dark-theme');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+    }
+
+    // Function to handle exam initialization
+    function initializeExam() {
+        // Get the exam data from localStorage
+        const examData = JSON.parse(localStorage.getItem('currentExam'));
+        const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex')) || 0;
+        
+        // Display exam information
+        document.getElementById('examTitle').textContent = examData.name;
+        document.getElementById('examDuration').textContent = `${examData.duration} minutes`;
+        
+        // Display exam type
+        let examType = '';
+        if (examData.questionType === "mcq") {
+            examType = 'Multiple Choice';
+        } 
+       
+        document.getElementById('examType').textContent = examType;
+        
+        // Determine which question to load first
+        loadQuestion(currentIndex);
+        
+        // Start the timer
+        startExamTimer();
+        
+        // Set up navigation between questions
+        setupQuestionNavigation();
+
+        // Set up keyboard shortcuts
+        setupKeyboardShortcuts();
+        
+        // Set up auto-save
+        setupAutoSave();
+        
+        // Update progress indicators
+        updateProgress();
+    }
+
+    // Function to set up keyboard shortcuts
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Enter to submit exam
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                confirmSubmitExam();
+                e.preventDefault();
+            }
+            
+            // Left arrow for previous question
+            if (e.altKey && e.key === 'ArrowLeft') {
+                const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex'));
+                if (currentIndex > 0) {
+                    loadQuestion(currentIndex - 1);
+                }
+                e.preventDefault();
+            }
+            
+            // Right arrow for next question
+            if (e.altKey && e.key === 'ArrowRight') {
+                const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex'));
+                const examData = JSON.parse(localStorage.getItem('currentExam'));
+                let totalQuestions = getTotalQuestions(examData);
+                
+                if (currentIndex < totalQuestions - 1) {
+                    loadQuestion(currentIndex + 1);
+                }
+                e.preventDefault();
+            }
+        });
+    }
+
+    // Helper function to get total questions
+function getTotalQuestions(examData) {
+    if (!examData) {
+        console.error('No exam data provided to getTotalQuestions');
+        return 0;
+    }
+    
+    let total = 0;
+    
+    if (examData.questionType === "mcq") {
+        const mcqQuestions = JSON.parse(localStorage.getItem('mcqQuestions')) || [];
+        total = mcqQuestions.length; // Use actual array length instead of examData.numMCQs
+    } 
+
+    console.log(`Total questions calculated: ${total} for type: ${examData.questionType}`); // Debug log
+    return total;
+}
+
+    // Function to set up auto-save
+    function setupAutoSave() {
+        setInterval(() => {
+            const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex')) || 0;
+            const examData = JSON.parse(localStorage.getItem('currentExam'));
+            
+            if (!examData) return; // Exit if no exam data
+            
+            if (examData.questionType === "mcq" || examData.questionType === "mcq&coding") {
+                // For MCQs, get all radio buttons for the current question
+                const mcqRadios = document.querySelectorAll(`input[name="q${currentIndex}"]`);
+                mcqRadios.forEach(radio => {
+                    if (radio.checked) {
+                        const mcqQuestions = JSON.parse(localStorage.getItem('mcqQuestions'));
+                        const question = mcqQuestions[currentIndex];
+                        if (question) {
+                            const optionIndex = parseInt(radio.value);
+                            const optionText = question.options[optionIndex];
+                            saveMCQAnswer(question._id, optionIndex, optionText);
+                        }
+                    }
+                });
+            }
+            
+            if (examData.questionType === "coding" || examData.questionType === "mcq&coding") {
+                // For coding questions, get the code editor value
+                const mcqLength = examData.questionType === "mcq&coding" ? 
+                    examData.numMCQs : 0;
+                
+                if (currentIndex >= mcqLength) {
+                    const codingIndex = currentIndex - mcqLength;
+                    const codingQuestions = JSON.parse(localStorage.getItem('codingQuestions'));
+                    const question = codingQuestions[codingIndex];
+                    
+                    if (question) {
+                        const codeEditor = document.getElementById(`codeEditor-${question._id}`);
+                        if (codeEditor) {
+                            saveCodingAnswer(question._id, codeEditor.value);
+                        }
+                    }
+                }
+            }
+            
+            // Update progress after auto-save
+            updateProgress();
+        }, 10000); // Auto-save every 10 seconds
+    }
+
+    // Function to update progress indicators
+    function updateProgress() {
+        const examData = JSON.parse(localStorage.getItem('currentExam'));
+        const answers = JSON.parse(localStorage.getItem('examAnswers'));
+        
+        // Count answered questions
+        let answeredCount = 0;
+        let totalQuestions = getTotalQuestions(examData);
+        
+        // Count MCQ answers
+        if (answers.mcq) {
+            answeredCount += Object.keys(answers.mcq).length;
+        }
+        
+
+        const progressPercent = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+        document.getElementById('progressFill').style.width = `${progressPercent}%`;
+        document.getElementById('answeredQuestions').textContent = `${answeredCount} answered`;
+        document.getElementById('totalQuestions').textContent = `${totalQuestions} total`;
+    }
+
+    // Function to load a specific question
+ 
+function loadQuestion(index) {
+    console.log(`Loading question at index: ${index}`); // Debug log
+    
+    const examData = JSON.parse(localStorage.getItem('currentExam'));
+    if (!examData) {
+        console.error('No exam data found');
+        return;
+    }
+    
+    let question;
+    let questionType;
+    let totalQuestions = getTotalQuestions(examData);
+    
+    // Validate index
+    if (index < 0 || index >= totalQuestions) {
+        console.error(`Invalid question index: ${index}. Total questions: ${totalQuestions}`);
+        return;
+    }
+    
+    // Get the appropriate question based on question type and index
+    if (examData.questionType === "mcq") {
+        const mcqQuestions = JSON.parse(localStorage.getItem('mcqQuestions'));
+        if (!mcqQuestions || index >= mcqQuestions.length) {
+            console.error(`MCQ question not found at index: ${index}`);
+            return;
+        }
+        question = mcqQuestions[index];
+        questionType = "mcq";
+    } 
+// else if (examData.questionType === "mcq&coding") {
+//         // For mixed exams, determine if we're showing MCQ or coding based on index
+//         const mcqQuestions = JSON.parse(localStorage.getItem('mcqQuestions')) || [];
+//         const codingQuestions = JSON.parse(localStorage.getItem('codingQuestions')) || [];
+        
+//         console.log(`Mixed exam: MCQ count: ${mcqQuestions.length}, Coding count: ${codingQuestions.length}, Index: ${index}`); // Debug log
+        
+//         if (index < mcqQuestions.length) {
+//             question = mcqQuestions[index];
+//             questionType = "mcq";
+//         } else {
+//             const codingIndex = index - mcqQuestions.length;
+//             if (codingIndex >= codingQuestions.length) {
+//                 console.error(`Coding question not found at adjusted index: ${codingIndex}`);
+//                 return;
+//             }
+//             question = codingQuestions[codingIndex];
+//             questionType = "coding";
+//         }
+//     }
+//         else if (examData.questionType === "coding") {
+//         const codingQuestions = JSON.parse(localStorage.getItem('codingQuestions'));
+//         if (!codingQuestions || index >= codingQuestions.length) {
+//             console.error(`Coding question not found at index: ${index}`);
+//             return;
+//         }
+//         question = codingQuestions[index];
+//         questionType = "coding";
+//     } 
+    
+    if (!question) {
+        console.error(`Question not found at index: ${index}`);
+        return;
+    }
+    
+    console.log(`Question loaded: ${question._id}, Type: ${questionType}`); // Debug log
+    
+    // Update the current question index BEFORE displaying the question
+    localStorage.setItem('currentQuestionIndex', index.toString());
+    
+    // Update question number display
+    const questionNumberElement = document.getElementById('questionNumber');
+    if (questionNumberElement) {
+        questionNumberElement.textContent = `Question ${index + 1}`;
+    }
+    
+    // Display the question based on type
+    if (questionType === "mcq") {
+        displayMCQQuestion(question, index);
+    } 
+
+    
+    // Update the question navigation UI
+    updateQuestionNavigation(index);
+}
+
+    // Function to display an MCQ question
+    function displayMCQQuestion(question, index) {
+    const questionContainer = document.getElementById('questionContainer');
+    questionContainer.innerHTML = ''; // Clear previous content
+    
+    // Create question display
+    const questionElement = document.createElement('div');
+    questionElement.classList.add('mcq-question');
+    
+    // Add question title and text
+    const questionTitle = document.createElement('h2');
+    questionTitle.classList.add('question-title');
+    
+    // ✅ UPDATED: Better approach for handling code formatting
+    const questionText = question.questionTitle || question.question;
+    
+    // Check if question contains code
+    if (questionText.includes('CODE:')) {
+        const parts = questionText.split('CODE:');
+        const questionPart = parts[0].trim().replace(/\\n$/, '').replace(/\n$/, '');
+        const codePart = parts[1].trim();
+        
+        // Set the question part as text
+        questionTitle.textContent = questionPart;
+        
+        // ✅ NEW: Create code block element separately to avoid HTML escaping issues
+        const codeBlock = document.createElement('div');
+        codeBlock.classList.add('code-block');
+        
+        // ✅ FIX: Use textContent to automatically handle HTML characters correctly
+        const formattedCode = codePart
+            .replace(/\\n/g, '\n')  // Convert \\n to actual newlines
+            .replace(/\t/g, '    '); // Convert tabs to 4 spaces
+        
+        codeBlock.textContent = formattedCode;
+        
+        // Add both elements to the question
+        questionElement.appendChild(questionTitle);
+        questionElement.appendChild(codeBlock);
+    } else {
+        // ✅ FALLBACK: Handle non-code questions
+        const formattedQuestion = questionText;
+        questionTitle.innerHTML = formattedQuestion;
+        questionElement.appendChild(questionTitle);
+    }
+    
+    // ✅ CHANGED: Add specific class for code formatting
+    questionTitle.classList.add('question-with-code');
+    
+    // Add options (unchanged - works perfectly)
+    const optionsContainer = document.createElement('div');
+    optionsContainer.classList.add('mcq-options');
+    
+    question.options.forEach((option, i) => {
+        const optionDiv = document.createElement('div');
+        optionDiv.classList.add('mcq-option');
+        
+        // Check if this option is already selected
+        const isSelected = getSelectedMCQAnswer(question._id, i);
+        if (isSelected) {
+            optionDiv.classList.add('selected');
+        }
+        
+        // Create radio input
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = `q${index}`;
+        radioInput.id = `q${index}opt${i}`;
+        radioInput.value = i;
+        radioInput.checked = isSelected;
+        
+        // Create label
+        const label = document.createElement('label');
+        label.htmlFor = `q${index}opt${i}`;
+        label.textContent = option;
+        
+        // Add event listener to save answer and update UI
+        radioInput.addEventListener('change', () => {
+            // Save the selected answer
+            saveMCQAnswer(question._id, i, option);
+            
+            // Update the UI
+            optionsContainer.querySelectorAll('.mcq-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            optionDiv.classList.add('selected');
+            
+            // Update progress
+            updateProgress();
+        });
+        
+        // Also add click event to the whole option div for better UX
+        optionDiv.addEventListener('click', () => {
+            radioInput.checked = true;
+            
+            // Trigger the change event
+            const event = new Event('change');
+            radioInput.dispatchEvent(event);
+        });
+        
+        // Append elements
+        optionDiv.appendChild(radioInput);
+        optionDiv.appendChild(label);
+        optionsContainer.appendChild(optionDiv);
+    });
+    
+    questionElement.appendChild(optionsContainer);
+    questionContainer.appendChild(questionElement);
+    
+    // Clear any badges from previous questions
+    document.getElementById('questionBadges').innerHTML = '';
+}
+
+
+    // Function to save MCQ answer to localStorage
+    function saveMCQAnswer(questionId, optionIndex, optionText) {
+        const answers = JSON.parse(localStorage.getItem('examAnswers')) || { mcq: {}, coding: {} };
+        if (!answers.mcq) {
+            answers.mcq = {};
+        }
+        answers.mcq[questionId] = {
+            index: optionIndex,
+            value: optionText
+        };
+        localStorage.setItem('examAnswers', JSON.stringify(answers));
+        
+        // Mark the question as answered in navigation
+        updateQuestionNavigation();
+    }
+
+    // Function to get selected MCQ answer
+    function getSelectedMCQAnswer(questionId, optionIndex) {
+        const answers = JSON.parse(localStorage.getItem('examAnswers'));
+        return answers && 
+               answers.mcq && 
+               answers.mcq[questionId] && 
+               answers.mcq[questionId].index === optionIndex;
+    }
+
+
+   
+    // Function to check for unanswered questions
+    function checkUnansweredQuestions() {
+        const examData = JSON.parse(localStorage.getItem('currentExam'));
+        const answers = JSON.parse(localStorage.getItem('examAnswers'));
+        
+        // Initialize arrays to store question IDs
+        let mcqQuestionIds = [];
+
+        
+        // Get all question IDs based on the exam type
+        if (examData.questionType === "mcq" || examData.questionType === "mcq&coding") {
+            const mcqQuestions = JSON.parse(localStorage.getItem('mcqQuestions'));
+            mcqQuestionIds = mcqQuestions.map(q => q._id);
+        }
+        
+      
+        
+        // Check which questions have been answered
+        const answeredMcqIds = answers.mcq ? Object.keys(answers.mcq) : [];
+      
+        
+        // Find unanswered questions
+        const unansweredMcqIds = mcqQuestionIds.filter(id => !answeredMcqIds.includes(id));
+
+        // Mark unanswered questions in the navigation
+        const navButtons = document.querySelectorAll('.nav-button');
+        navButtons.forEach(button => {
+            const index = parseInt(button.dataset.index);
+            let isUnanswered = false;
+            
+            // Check if this is an unanswered MCQ question
+            if (index < mcqQuestionIds.length && unansweredMcqIds.includes(mcqQuestionIds[index])) {
+                isUnanswered = true;
+            }
+            
+
+            
+            // Mark unanswered questions with a red border
+            if (isUnanswered) {
+                button.classList.add('unanswered');
+            } else {
+                button.classList.remove('unanswered');
+            }
+        });
+        
+        return {
+            unansweredMcq: unansweredMcqIds.length,
+            // unansweredCoding: unansweredCodingIds.length,
+            total: unansweredMcqIds.length // + unansweredCodingIds.length
+        };
+    }
+
+    
+
+function setupQuestionNavigation() {
+    const examData = JSON.parse(localStorage.getItem('currentExam'));
+    const navigationContainer = document.getElementById('questionNavigation');
+    
+    // Clear previous navigation
+    navigationContainer.innerHTML = '';
+    
+    // Determine total questions
+    let totalQuestions = getTotalQuestions(examData);
+    
+    // Create navigation buttons
+    for (let i = 0; i < totalQuestions; i++) {
+        const navButton = document.createElement('button');
+        navButton.textContent = i + 1;
+        navButton.classList.add('nav-button');
+        navButton.dataset.index = i;
+        navButton.addEventListener('click', () => {
+            console.log(`Navigation button clicked: ${i}`); // Debug log
+            loadQuestion(i);
+        });
+        navigationContainer.appendChild(navButton);
+    }
+    
+    // Set up next/prev buttons with better error handling
+    const prevButton = document.getElementById('prevQuestion');
+    const nextButton = document.getElementById('nextQuestion');
+    
+    // Remove any existing event listeners
+    if (prevButton) {
+        const newPrevButton = prevButton.cloneNode(true);
+        prevButton.parentNode.replaceChild(newPrevButton, prevButton);
+        
+        newPrevButton.addEventListener('click', () => {
+            const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex')) || 0;
+            console.log(`Previous button clicked. Current index: ${currentIndex}`); // Debug log
+            if (currentIndex > 0) {
+                loadQuestion(currentIndex - 1);
+            }
+        });
+    }
+    
+    if (nextButton) {
+        const newNextButton = nextButton.cloneNode(true);
+        nextButton.parentNode.replaceChild(newNextButton, nextButton);
+        
+        newNextButton.addEventListener('click', () => {
+            const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex')) || 0;
+            console.log(`Next button clicked. Current index: ${currentIndex}, Total: ${totalQuestions}`); // Debug log
+            if (currentIndex < totalQuestions - 1) {
+                loadQuestion(currentIndex + 1);
+            }
+        });
+    }
+    
+    // Set up the submit button
+    const submitButton = document.getElementById('submitExam');
+    if (submitButton) {
+        // Remove existing listener and add new one
+        const newSubmitButton = submitButton.cloneNode(true);
+        submitButton.parentNode.replaceChild(newSubmitButton, submitButton);
+        newSubmitButton.addEventListener('click', confirmSubmitExam);
+    }
+    
+    // Check for unanswered questions
+    checkUnansweredQuestions();
+}
+   
+function updateQuestionNavigation(currentIndex) {
+    // If currentIndex is not provided, get it from localStorage
+    if (currentIndex === undefined) {
+        currentIndex = parseInt(localStorage.getItem('currentQuestionIndex')) || 0;
+    }
+    
+    console.log(`Updating navigation for index: ${currentIndex}`); // Debug log
+    
+    const navButtons = document.querySelectorAll('.nav-button');
+    navButtons.forEach((button, buttonIndex) => {
+        button.classList.remove('active');
+        if (buttonIndex === currentIndex) {
+            button.classList.add('active');
+        }
+    });
+    
+    // Update next/prev button states
+    const examData = JSON.parse(localStorage.getItem('currentExam'));
+    let totalQuestions = getTotalQuestions(examData);
+    
+    const prevButton = document.getElementById('prevQuestion');
+    const nextButton = document.getElementById('nextQuestion');
+    
+    if (prevButton) {
+        prevButton.disabled = currentIndex === 0;
+    }
+    
+    if (nextButton) {
+        nextButton.disabled = currentIndex === totalQuestions - 1;
+    }
+    
+    // Check for unanswered questions
+    checkUnansweredQuestions();
+}
+
+    // Function to start exam timer
+    function startExamTimer() {
+        const endTimeStr = localStorage.getItem('examEndTime');
+        if (!endTimeStr) return;
+        
+        const endTime = parseInt(endTimeStr);
+        const timerDisplay = document.getElementById('examTimer');
+        
+        const timer = setInterval(() => {
+            const now = new Date().getTime();
+            const timeLeft = endTime - now;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                timerDisplay.innerHTML = '<i class="fas fa-clock"></i> Time\'s up!';
+                timerDisplay.classList.add('timer-critical');
+                submitExam(); // Auto-submit when time's up
+                return;
+            }
+            
+            // Calculate time left
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+            
+            // Format time and update display
+            timerDisplay.innerHTML = `<i class="fas fa-clock"></i> ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Add warning class when less than 5 minutes left
+            if (timeLeft < 5 * 60 * 1000) {
+                timerDisplay.classList.add('timer-critical');
+            }
+        }, 1000);
+    }
+
+
+function submitExam() {
+    const examData = JSON.parse(localStorage.getItem('currentExam'));
+    const answers = JSON.parse(localStorage.getItem('examAnswers'));
+    
+    // Show loading indicator
+    const submitButton = document.getElementById('submitExam');
+    const originalButtonText = submitButton.innerHTML;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    submitButton.disabled = true;
+    
+   
+    // Refresh answers after saving current code
+    const updatedAnswers = JSON.parse(localStorage.getItem('examAnswers'));
+        
+    
+
+    // Prepare submission data
+    const submissionData = {
+        exam: examData._id,
+        mcqAnswers: [],
+        // codingAnswers: []
+    };
+    
+    // Process MCQ answers
+    if (updatedAnswers.mcq && Object.keys(updatedAnswers.mcq).length > 0) {
+        for (const questionId in updatedAnswers.mcq) {
+            const answerData = updatedAnswers.mcq[questionId];
+            submissionData.mcqAnswers.push({
+                questionId: questionId,
+                selectedOption: answerData.value || answerData.index.toString()
+            });
+        }
+    }
+    
+  
+    console.log('Final submission data:', {
+        exam: submissionData.exam,
+        mcqCount: submissionData.mcqAnswers.length,
+       
+    });
+    
+    // Get integrity data
+    const userId = document.getElementById('user').textContent;
+    const examId = document.getElementById('exam').textContent;
+    
+    const integrity = examIntegrity.init({
+        examId: examId,
+        userId: userId,
+        apiEndpoints: {
+            integrityUpdate: '/update-integrity',
+            activityPing: '/dashboard/see-active',
+            saveImage: '/save-image'
+        },
+        config: {
+            maxViolations: 5,
+            maxRefreshes: 3,
+            pingInterval: 30000,
+            webcamCaptureInterval: 10000
+        },
+        onAutoSubmit: function(reason) {
+            console.log(`Auto-submitting exam due to: ${reason}`);
+            document.getElementById('examForm').submit();
+            setTimeout(() => {
+                window.location.href = '/exam-complete';
+            }, 1000);
+        },
+        startWebcam: false
+    });
+    
+    const violations = integrity.getViolationCounts();
+    console.log('Final violation counts:', violations);
+    
+    // Stop integrity monitoring
+    integrity.stop();
+    
+    // Send submission to server
+    fetch('/dashboard/submit-test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(submissionData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            return response.text().then(text => {
+                throw new Error(text || 'Submission failed');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        showSuccessMessage('Exam submitted successfully!');
+        
+        // Clear exam data from localStorage
+        clearExamData();
+        
+        // Redirect after delay
+        setTimeout(() => {
+            window.close();
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Error submitting exam:', error);
+        showErrorMessage(`There was an error submitting your exam: ${error.message}`);
+        
+        // Reset button state
+        submitButton.innerHTML = originalButtonText;
+        submitButton.disabled = false;
+    });
+}
+
+//     // Function to show success message
+    function showSuccessMessage(message) {
+        const messageContainer = document.createElement('div');
+        messageContainer.className = 'message-container success-message';
+        messageContainer.innerHTML = `
+            <div class="message-content">
+                <i class="fas fa-check-circle"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(messageContainer);
+        
+        setTimeout(() => {
+            messageContainer.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            messageContainer.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(messageContainer);
+            }, 500);
+        }, 3000);
+    }
+
+    // Function to show error message
+    function showErrorMessage(message) {
+        const messageContainer = document.createElement('div');
+        messageContainer.className = 'message-container error-message';
+        messageContainer.innerHTML = `
+            <div class="message-content">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(messageContainer);
+        
+        setTimeout(() => {
+            messageContainer.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            messageContainer.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(messageContainer);
+            }, 500);
+        }, 5000);
+    }
+
+    // Helper function to clear exam data
+function clearExamData() {
+    localStorage.removeItem('currentExam');
+    localStorage.removeItem('mcqQuestions');
+    // localStorage.removeItem('codingQuestions');
+    localStorage.removeItem('currentQuestionIndex');
+    localStorage.removeItem('examEndTime');
+    localStorage.removeItem('examAnswers');
+}
+
+    // Function to confirm submission
+    function confirmSubmitExam() {
+        // Check if all questions have been attempted
+        const unansweredStatus = checkUnansweredQuestions();
+        
+        // Create a custom confirmation modal
+        const modalContainer = document.createElement('div');
+        modalContainer.className = 'modal-container';
+        
+        let confirmMessage = '<h3>Submit Exam?</h3>';
+        
+        if (unansweredStatus.total > 0) {
+            confirmMessage += `
+                <p class="warning"><i class="fas fa-exclamation-triangle"></i> You have ${unansweredStatus.total} unanswered question(s).</p>
+                <p>Are you sure you want to submit your exam?</p>
+            `;
+        } else {
+            confirmMessage += `
+                <p>You have answered all questions. Are you ready to submit your exam?</p>
+            `;
+        }
+        
+        modalContainer.innerHTML = `
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    ${confirmMessage}
+                </div>
+                <div class="modal-footer">
+                    <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+                    <button id="modal-confirm" class="btn btn-danger">Yes, Submit</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modalContainer);
+        
+        // Add event listeners
+        document.querySelector('.modal-close').addEventListener('click', () => {
+            document.body.removeChild(modalContainer);
+        });
+        
+        document.querySelector('.modal-backdrop').addEventListener('click', () => {
+            document.body.removeChild(modalContainer);
+        });
+        
+        document.getElementById('modal-cancel').addEventListener('click', () => {
+            document.body.removeChild(modalContainer);
+        });
+        
+        document.getElementById('modal-confirm').addEventListener('click', () => {
+            document.body.removeChild(modalContainer);
+            submitExam();
+        });
+    }
+
+
+
+    // Add these styles for the modal and messages
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        /* Modal Styles */
+        .modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            z-index: 1001;
+            box-shadow: var(--shadow-lg);
+            animation: modalFadeIn 0.3s;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .modal-close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--secondary);
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        
+        .modal-body .warning {
+            color: var(--danger);
+            background-color: #fee2e2;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Message Styles */
+        .message-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            max-width: 300px;
+            z-index: 1000;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transform: translateX(110%);
+            transition: transform 0.3s ease;
+        }
+        
+        .message-container.show {
+            transform: translateX(0);
+        }
+        
+        .message-content {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .success-message .message-content {
+            background-color: #ecfdf5;
+            color: #064e3b;
+            border-left: 4px solid #10b981;
+        }
+        
+        .error-message .message-content {
+            background-color: #fef2f2;
+            color: #7f1d1d;
+            border-left: 4px solid #ef4444;
+        }
+        
+        /* Loading Spinner */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+        
+        /* Dark Theme Styles */
+        body.dark-theme {
+            background-color: #1e1e2d;
+            color: #e5e7eb;
+        }
+        
+        body.dark-theme .header,
+        body.dark-theme .question-panel,
+        body.dark-theme .sidebar-card {
+            background-color: #252636;
+            color: #e5e7eb;
+        }
+        
+        body.dark-theme .nav-button {
+            background-color: #2d2d3f;
+            color: #e5e7eb;
+            border-color: #374151;
+        }
+        
+        body.dark-theme .nav-button:hover {
+            background-color: #374151;
+        }
+        
+        body.dark-theme pre {
+            background-color: #1a1a2e;
+            border-color: #374151;
+            color: #e5e7eb;
+        }
+        
+        body.dark-theme .mcq-option {
+            background-color: #2d2d3f;
+            border-color: #374151;
+        }
+        
+        body.dark-theme .mcq-option:hover {
+            background-color: #374151;
+        }
+        
+        body.dark-theme .mcq-option.selected {
+            background-color: #3b82f6;
+            border-color: #2563eb;
+            color: white;
+        }
+        
+        body.dark-theme .btn-secondary {
+            background-color: #374151;
+            color: #e5e7eb;
+            border-color: #4b5563;
+        }
+        
+        body.dark-theme .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+        
+        body.dark-theme .code-textarea {
+            background-color: #1e1e1e;
+            color: #e5e7eb;
+            border-color: #374151;
+        }
+        
+        body.dark-theme .test-results-table th,
+        body.dark-theme .test-results-table td {
+            border-color: #374151;
+        }
+        
+        body.dark-theme .test-results-table th {
+            background-color: #2d2d3f;
+        }
+        
+        body.dark-theme .diff-expected {
+            background-color: #064e3b;
+            border-color: #10b981;
+        }
+        
+        body.dark-theme .diff-actual {
+            background-color: #7f1d1d;
+            border-color: #ef4444;
+        }
+        
+        body.dark-theme .dark-mode-toggle {
+            color: #e5e7eb;
+        }
+        
+        body.dark-theme .dark-mode-toggle:hover {
+            background-color: #374151;
+        }
+        
+        body.dark-theme .timer-display {
+            background-color: #2d2d3f;
+            color: #e5e7eb;
+        }
+        
+        body.dark-theme .modal-content {
+            background-color: #252636;
+            color: #e5e7eb;
+        }
+        
+        body.dark-theme .modal-header,
+        body.dark-theme .modal-footer {
+            border-color: #374151;
+        }
+    `;
+    document.head.appendChild(styleElement);
+
+    </script>
+</body>
+</html>

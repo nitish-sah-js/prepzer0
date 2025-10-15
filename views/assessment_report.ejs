@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary-color: #f97316;
+      --text-color: #e2e8f0;
+      --light-bg: #111827;
+      --card-bg: #1F2836;
+      --nav-bg: #1F2937;
+      --border-color: #374151;
+      --success-color: #10b981;
+      --error-color: #ef4444;
+      --warning-color: #f59e0b;
+      --info-color: #0ea5e9;
+      --gold: #f59e0b;
+      --silver: #94a3b8;
+      --bronze: #d97706;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--light-bg);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      padding: 1rem 2rem;
+      background-color: var(--nav-bg);
+      border-radius: 0.5rem;
+    }
+    
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo span {
+      color: var(--secondary-color);
+    }
+    
+    .report-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    
+    .action-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1.5rem;
+    }
+    
+    .btn {
+      padding: 0.5rem 1.25rem;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .btn-warning {
+      background-color: var(--warning-color);
+      color: white;
+    }
+    
+    .btn-warning:hover {
+      background-color: #d97706;
+    }
+    
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+    
+    .student-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    
+    .info-item {
+      margin-bottom: 0.5rem;
+      word-break: break-word; /* Added to handle long emails */
+    }
+    
+    .info-label {
+      font-weight: 500;
+      color: var(--text-color);
+    }
+    
+    .info-value {
+      font-weight: 400;
+      color: var(--text-color);
+    }
+    
+    .score-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 2rem;
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: white;
+      border-radius: 0.5rem;
+    }
+    
+    .score-title {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .score-value {
+      font-size: 3rem;
+      font-weight: 700;
+    }
+    
+    .score-max {
+      font-size: 1.5rem;
+      opacity: 0.8;
+    }
+    
+    .score-breakdown {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      text-align: center;
+    }
+    
+    .score-component {
+      padding: 0.75rem 1.5rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 0.375rem;
+    }
+    
+    .score-component-title {
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+      opacity: 0.8;
+    }
+    
+    .score-component-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .time-analysis, .integrity-report {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    
+    .integrity-status {
+      padding: 0.5rem 1rem;
+      border-radius: 0.25rem;
+      font-weight: 600;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    
+    .status-acceptable {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: var(--success-color);
+    }
+    
+    .status-unacceptable {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: var(--error-color);
+    }
+    
+    .questions-list {
+      margin-top: 2rem;
+    }
+    
+    .question-item {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .question-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .question-score {
+      font-size: 0.875rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-weight: 500;
+    }
+    
+    .question-score-success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success-color);
+    }
+    
+    .question-score-error {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--error-color);
+    }
+    
+    .question-score-partial {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: var(--warning-color);
+    }
+    
+    .question-text {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+    
+    .options-list {
+      list-style-type: none;
+      margin-bottom: 1rem;
+    }
+    
+    .option-item {
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.25rem;
+      border: 1px solid var(--border-color);
+    }
+    
+    .option-correct {
+      background-color: rgba(16, 185, 129, 0.1);
+      border-color: var(--success-color);
+    }
+    
+    .option-incorrect {
+      background-color: rgba(239, 68, 68, 0.1);
+      border-color: var(--error-color);
+    }
+    
+    .answer-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    .answer-label {
+      font-weight: 500;
+    }
+    
+    .answer-value {
+      font-weight: 600;
+    }
+    
+    .answer-correct {
+      color: var(--success-color);
+    }
+    
+    .answer-incorrect {
+      color: var(--error-color);
+    }
+
+    /* Ranking styles */
+    .rank-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    
+    .rank-badge {
+      background-color: var(--primary-dark);
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 700;
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+    }
+
+    .rank-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .top-performers {
+      margin-top: 2rem;
+    }
+
+    .performer-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .performer-table th,
+    .performer-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .performer-table th {
+      background-color: rgba(99, 102, 241, 0.1);
+      font-weight: 600;
+    }
+
+    .rank-1, .rank-2, .rank-3 {
+      font-weight: 700;
+    }
+
+    .rank-1 {
+      color: var(--gold);
+    }
+
+    .rank-2 {
+      color: var(--silver);
+    }
+
+    .rank-3 {
+      color: var(--bronze);
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+      background-color: var(--card-bg);
+      margin: 15% auto;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      position: relative;
+      color: var(--text-color);
+    }
+    
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-color);
+    }
+    
+    .modal-text {
+      margin-bottom: 1.5rem;
+      color: var(--text-color);
+    }
+    
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+    
+    .btn-danger {
+      background-color: var(--error-color);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #dc2626;
+    }
+    
+    .btn-secondary {
+      background-color: #94a3b8;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #64748b;
+    }
+
+    /* Coding assessment styles */
+    .coding-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .test-cases-summary {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .test-case-indicator {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .test-case-pass {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: var(--success-color);
+    }
+
+    .test-case-fail {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: var(--error-color);
+    }
+
+    .test-cases-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      table-layout: fixed;
+    }
+
+    .test-cases-table th,
+    .test-cases-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .test-cases-table th {
+      background-color: rgba(99, 102, 241, 0.1);
+      font-weight: 600;
+    }
+
+    .error-message {
+      background-color: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid var(--error-color);
+      padding: 0.75rem;
+      margin-top: 1rem;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .pill-success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success-color);
+    }
+
+    .pill-error {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--error-color);
+    }
+
+    .pill-warning {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: var(--warning-color);
+    }
+
+    .pill-info {
+      background-color: rgba(14, 165, 233, 0.1);
+      color: var(--info-color);
+    }
+
+    .execution-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.25rem;
+      font-weight: 500;
+      font-size: 0.75rem;
+    }
+
+    .execution-pass {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success-color);
+    }
+
+    .execution-fail {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--error-color);
+    }
+
+    .execution-partial {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: var(--warning-color);
+    }
+
+    .execution-details {
+      margin-top: 1rem;
+      padding: 1rem;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 0.25rem;
+    }
+
+    .classification-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      background-color: rgba(14, 165, 233, 0.1);
+      color: var(--info-color);
+      margin-left: 0.5rem;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+      }
+      
+      .score-card {
+        padding: 1.5rem;
+      }
+      
+      .score-value {
+        font-size: 2.5rem;
+      }
+      
+      .answer-info {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .performer-table {
+        font-size: 0.875rem;
+      }
+
+      .score-breakdown {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">PrepZer<span>0</span></div>
+      <div class="report-title">Assessment Report</div>
+    </header>
+    
+    <div class="action-buttons">
+      <button id="allowRetestBtn" class="btn btn-warning">Allow Retest</button>
+    </div>
+    
+    <section class="card">
+      <h2 class="card-title">Candidate Details</h2>
+      <div class="student-info">
+        <div class="info-item">
+          <span class="info-label">Name:</span>
+          <span class="info-value"><%= report.student.fname %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">USN:</span>
+          <span class="info-value"><%= report.student.USN %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Department:</span>
+          <span class="info-value"><%= report.student.Department %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Semester:</span>
+          <span class="info-value"><%= report.student.Semester %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Email:</span>
+          <span class="info-value"><%= report.student.email %></span>
+        </div>
+      </div>
+    </section>
+    
+    <section class="card score-card">
+      <div class="score-title">Assessment Score</div>
+      
+      <% if (report.combinedScore) { %>
+        <!-- Display total combined score -->
+        <div class="score-value"><%= report.combinedScore.obtained %><span class="score-max">/<%= report.combinedScore.total %></span></div>
+        
+        <!-- ALWAYS show breakdown for MCQ and Coding -->
+        <div class="score-breakdown">
+          <!-- MCQ Component -->
+          <div class="score-component">
+            <div class="score-component-title">MCQ Score</div>
+            <div class="score-component-value">
+              <%= report.combinedScore.mcq.obtained %>/<%= report.combinedScore.mcq.total %>
+            </div>
+          </div>
+          
+          <!-- Coding Component -->
+          <div class="score-component">
+            <div class="score-component-title">Coding Score</div>
+            <div class="score-component-value">
+              <% if (report.combinedScore.coding.evaluationStatus === 'Evaluated') { %>
+                <%= report.combinedScore.coding.obtained %>/<%= report.combinedScore.coding.total %>
+              <% } else if (report.combinedScore.coding.evaluationStatus === 'No Coding Questions') { %>
+                0/0
+              <% } else { %>
+                Pending
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% } else if (report.score.mcq && report.score.coding) { %>
+        <!-- Mixed assessment handled by ReportModel -->
+        <div class="score-value"><%= report.score.obtained %><span class="score-max">/<%= report.score.total %></span></div>
+        
+        <div class="score-breakdown">
+          <div class="score-component">
+            <div class="score-component-title">MCQ Score</div>
+            <div class="score-component-value"><%= report.score.mcq.obtained %>/<%= report.score.mcq.total %></div>
+          </div>
+          <div class="score-component">
+            <div class="score-component-title">Coding Score</div>
+            <div class="score-component-value"><%= report.score.coding.obtained %>/<%= report.score.coding.total %></div>
+          </div>
+        </div>
+      <% } else { %>
+        <!-- Fallback for older data structure -->
+        <div class="score-value"><%= report.score.obtained %><span class="score-max">/<%= report.score.total %></span></div>
+        
+        <!-- Show breakdown anyway -->
+        <div class="score-breakdown">
+          <div class="score-component">
+            <div class="score-component-title">MCQ Score</div>
+            <div class="score-component-value"><%= report.score.obtained %>/<%= report.score.total %></div>
+          </div>
+          <div class="score-component">
+            <div class="score-component-title">Coding Score</div>
+            <div class="score-component-value">0/0</div>
+          </div>
+        </div>
+      <% } %>
+      
+      <div class="rank-info">
+        <div class="rank-badge">#<%= report.ranking.rank %></div>
+        <div class="rank-text">Rank <%= report.ranking.rank %> of <%= report.ranking.totalStudents %></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Top Performers</h2>
+      <div class="top-performers">
+        <table class="performer-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Name</th>
+              <th>Score</th>
+              <th>Submission Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% report.ranking.topPerformers.forEach((performer, index) => { %>
+              <tr class="<%= index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : (index === 2 ? 'rank-3' : '')) %>">
+                <td>#<%= index + 1 %></td>
+                <td><%= performer.studentName %></td>
+                <td>
+                  <%= performer.score %>/<%= report.combinedScore ? report.combinedScore.total : report.score.total %>
+                </td>
+                <td><%= new Date(performer.submittedAt).toLocaleString() %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    
+    <section class="card">
+      <h2 class="card-title">Test Time Analysis</h2>
+      <div class="time-analysis">
+        <div class="info-item">
+          <span class="info-label">Test Start Time:</span>
+          <span class="info-value">
+            <%= report.timeAnalysis.startTime ? new Date(report.timeAnalysis.startTime).toLocaleString() : 'Not Available' %>
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Test End Time:</span>
+          <span class="info-value">
+            <%= report.timeAnalysis.endTime ? new Date(report.timeAnalysis.endTime).toLocaleString() : 'Not Available' %>
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Test Duration:</span>
+          <span class="info-value"><%= report.timeAnalysis.duration %>
+            <% if (report.timeAnalysis.durationInMinutes && report.timeAnalysis.durationInMinutes > 0) { %>
+              <small class="text-muted">(<%= report.timeAnalysis.durationInMinutes %> minutes)</small>
+            <% } %>
+          </span>
+        </div>
+      </div>
+    </section>
+    
+    <section class="card">
+      <h2 class="card-title">Integrity Report</h2>
+      <div class="integrity-report">
+        <div class="info-item">
+          <span class="info-label">Copy Attempts:</span>
+          <span class="info-value"><%= report.integrity.data.copyAttempts || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Focus Changes:</span>
+          <span class="info-value"><%= report.integrity.data.focusChanges || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Full Screen Exits:</span>
+          <span class="info-value"><%= report.integrity.data.fullscreenExits || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Last Event:</span>
+          <span class="info-value"><%= report.integrity.data.lastEvent || 'N/A' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Mouse Outs:</span>
+          <span class="info-value"><%= report.integrity.data.mouseOuts || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Paste Attempts:</span>
+          <span class="info-value"><%= report.integrity.data.pasteAttempts || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Screen Configuration:</span>
+          <span class="info-value"><%= report.integrity.data.screenConfiguration || 'Unknown' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Tab Changes:</span>
+          <span class="info-value"><%= report.integrity.data.tabChanges || 0 %></span>
+        </div>
+      </div>
+      <div class="integrity-status <%= report.integrity.status === 'Acceptable' ? 'status-acceptable' : 'status-unacceptable' %>">
+        Integrity Index: <%= report.integrity.status %>
+      </div>
+    </section>
+    
+    <!-- MCQ Questions Section - Only show if MCQ questions exist -->
+    <% if (report.questions && report.questions.length > 0) { %>
+    <section class="card">
+      <h2 class="card-title">MCQ Questions</h2>
+      <div class="questions-list">
+        <% report.questions.forEach((question, index) => { %>
+          <div class="question-item">
+            <div class="question-text"><%= index + 1 %>. <%= question.question %></div>
+            <ul class="options-list">
+              <% question.options.forEach((option, optIndex) => { %>
+                <li class="option-item <%= option === question.correctAnswer ? 'option-correct' : (option === question.submittedAnswer && option !== question.correctAnswer ? 'option-incorrect' : '') %>">
+                  <%= String.fromCharCode(65 + optIndex) %>. <%= option %>
+                </li>
+              <% }); %>
+            </ul>
+            <div class="answer-info">
+              <div>
+                <span class="answer-label">Correct Answer:</span>
+                <span class="answer-value answer-correct">
+                  <%= question.options.findIndex(opt => opt === question.correctAnswer) !== -1 ? 
+                      String.fromCharCode(65 + question.options.findIndex(opt => opt === question.correctAnswer)) : 'N/A' %>.
+                  <%= question.correctAnswer %>
+                </span>
+              </div>
+              <div>
+                <span class="answer-label">Submitted Answer:</span>
+                <span class="answer-value <%= question.isCorrect ? 'answer-correct' : 'answer-incorrect' %>">
+                  <%= question.submittedAnswer === 'Not answered' ? 'Not answered' : 
+                      (question.options.findIndex(opt => opt === question.submittedAnswer) !== -1 ? 
+                      String.fromCharCode(65 + question.options.findIndex(opt => opt === question.submittedAnswer)) + '. ' + 
+                      question.submittedAnswer : 'Invalid') %>
+                </span>
+              </div>
+              <div>
+                <span class="answer-label">Marks:</span>
+                <span class="answer-value <%= question.isCorrect ? 'answer-correct' : 'answer-incorrect' %>">
+                  <%= question.isCorrect ? question.marks : 0 %>/<%= question.marks %>
+                </span>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    </section>
+    <% } %>
+    
+    <!-- Coding Questions Section - Only show if coding evaluation exists -->
+    <% if (report.codingEvaluation || report.evaluationResult) { %>
+    <section class="card">
+      <h2 class="card-title">Coding Assessment</h2>
+      
+      <% 
+        // Use either codingEvaluation or evaluationResult depending on what's available
+        const codingData = report.codingEvaluation || report.evaluationResult;
+      %>
+      
+      <!-- Coding Summary Statistics -->
+      <div class="coding-summary">
+        <div class="info-item">
+          <span class="info-label">Total Questions:</span>
+          <span class="info-value"><%= codingData.summary?.totalQuestions || (codingData.questions ? codingData.questions.length : 0) || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Attempted:</span>
+          <span class="info-value"><%= codingData.summary?.attempted || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Correct:</span>
+          <span class="info-value"><%= codingData.summary?.correct || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Partial:</span>
+          <span class="info-value"><%= codingData.summary?.partial || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Incorrect:</span>
+          <span class="info-value"><%= codingData.summary?.incorrect || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Total Test Cases:</span>
+          <span class="info-value"><%= codingData.summary?.totalTestCases || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Passed Test Cases:</span>
+          <span class="info-value"><%= codingData.summary?.passedTestCases || 0 %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Success Rate:</span>
+          <span class="info-value">
+            <%= codingData.summary?.totalTestCases ? 
+                Math.round((codingData.summary.passedTestCases / codingData.summary.totalTestCases) * 100) : 
+                0 %>%
+          </span>
+        </div>
+      </div>
+      
+      <!-- Individual Coding Questions -->
+      <div class="questions-list">
+        <% if (codingData.questions && codingData.questions.length > 0) { %>
+          <% codingData.questions.forEach((question, index) => { %>
+            <div class="question-item">
+              <div class="question-title">
+                <%= index + 1 %>. <%= question.title || question.questionTitle || 'Coding Question' %>
+                <% if (question.classification) { %>
+                  <span class="classification-badge"><%= question.classification %></span>
+                <% } %>
+                <span class="question-score 
+                  <%= question.status === 'correct' ? 'question-score-success' : 
+                     (question.status === 'partial' ? 'question-score-partial' : 'question-score-error') %>">
+                  <%= question.score || question.marks || 0 %>/<%= question.maxScore || question.maxMarks || 0 %> pts
+                </span>
+              </div>
+              
+              <!-- Execution Summary -->
+              <div class="info-item">
+                <span class="info-label">Status:</span>
+                <span class="execution-badge 
+                  <%= question.status === 'correct' ? 'execution-pass' : 
+                     (question.status === 'partial' ? 'execution-partial' : 'execution-fail') %>">
+                  <%= question.status === 'correct' ? 'All Test Cases Passed' : 
+                     (question.status === 'partial' ? 'Partially Correct' : 
+                      (question.status === 'not_attempted' ? 'Not Attempted' : 'Failed')) %>
+                </span>
+              </div>
+              
+              <div class="test-cases-summary">
+                <div class="info-item">
+                  <span class="info-label">Test Cases:</span>
+                  <span class="info-value"><%= question.testCasesPassed || 0 %>/<%= question.testCasesTotal || question.totalTestCases || 0 %> passed</span>
+                </div>
+              </div>
+              
+              <!-- Test Cases Results (without showing actual test cases) -->
+              <% if (question.testCases && question.testCases.length > 0) { %>
+                <table class="test-cases-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 10%">Test #</th>
+                      <th style="width: 15%">Status</th>
+                      <th style="width: 20%">Execution Time</th>
+                      <th style="width: 20%">Memory Usage</th>
+                      <th style="width: 35%">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% question.testCases.forEach((testCase, tcIndex) => { %>
+                      <tr>
+                        <td>Test <%= tcIndex + 1 %></td>
+                        <td>
+                          <span class="pill <%= testCase.passed ? 'pill-success' : 'pill-error' %>">
+                            <%= testCase.passed ? 'PASS' : 'FAIL' %>
+                          </span>
+                        </td>
+                        <td><%= testCase.executionTime ? (testCase.executionTime + ' ms') : 'N/A' %></td>
+                        <td><%= testCase.memoryUsage ? (testCase.memoryUsage + ' MB') : 'N/A' %></td>
+                        <td>
+                          <% if (!testCase.passed && testCase.error) { %>
+                            <span class="pill pill-error">Error</span>
+                          <% } else if (testCase.passed) { %>
+                            <span class="pill pill-success">Output Matched</span>
+                          <% } else { %>
+                            <span class="pill pill-warning">Output Mismatch</span>
+                          <% } %>
+                        </td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              <% } %>
+              
+              <!-- Execution Details -->
+              <% if (question.executionDetails) { %>
+                <div class="execution-details">
+                  <div class="info-item">
+                    <span class="info-label">Execution Status:</span>
+                    <span class="info-value">
+                      <span class="pill <%= 
+                        question.executionDetails.status === 'executed' ? 'pill-success' : 
+                        (question.executionDetails.status === 'compilation_error' ? 'pill-error' : 
+                        (question.executionDetails.status === 'runtime_error' ? 'pill-error' : 'pill-warning')) %>">
+                        <%= question.executionDetails.status === 'executed' ? 'Successfully Executed' :
+                           (question.executionDetails.status === 'compilation_error' ? 'Compilation Error' :
+                           (question.executionDetails.status === 'runtime_error' ? 'Runtime Error' :
+                           (question.executionDetails.status === 'pending' ? 'Pending' : 'Error'))) %>
+                      </span>
+                    </span>
+                  </div>
+                  
+                  <% if (question.executionDetails.compilationError) { %>
+                    <div class="error-message">
+                      Compilation Error: <%= question.executionDetails.compilationError %>
+                    </div>
+                  <% } %>
+                  
+                  <% if (question.executionDetails.runtimeError) { %>
+                    <div class="error-message">
+                      Runtime Error: <%= question.executionDetails.runtimeError %>
+                    </div>
+                  <% } %>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Total Execution Time:</span>
+                    <span class="info-value"><%= question.executionDetails.executionTime || 0 %> ms</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Memory Usage:</span>
+                    <span class="info-value"><%= question.executionDetails.memoryUsage || 0 %> MB</span>
+                  </div>
+                </div>
+              <% } %>
+              
+              <!-- Error Summary (if any) -->
+              <% if (question.errorSummary) { %>
+                <div class="error-message">
+                  <%= question.errorSummary %>
+                </div>
+              <% } %>
+            </div>
+          <% }); %>
+        <% } else { %>
+          <div class="info-item">
+            <span class="info-value">No coding questions were attempted or the evaluation data is incomplete.</span>
+          </div>
+        <% } %>
+      </div>
+    </section>
+    <% } %>
+  </div>
+  
+  <!-- Confirmation Modal -->
+  <div id="confirmationModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Confirm Delete</div>
+      <div class="modal-text">
+        Are you sure you want to delete this candidate record and allow a retest? This action cannot be undone.
+      </div>
+      <div class="modal-actions">
+        <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+        <button id="confirmBtn" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const modal = document.getElementById('confirmationModal');
+      const allowRetestBtn = document.getElementById('allowRetestBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const confirmBtn = document.getElementById('confirmBtn');
+      
+      // Get necessary IDs from the page
+      const userId = '<%= report.student._id %>'; 
+      const examId = '<%= report.exam._id %>';
+      const submissionId = '<%= submissionId %>';
+      
+      // Open modal when "Allow Retest" button is clicked
+      allowRetestBtn.addEventListener('click', function() {
+        modal.style.display = 'block';
+      });
+      
+      // Close modal when "Cancel" button is clicked
+      cancelBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+      });
+      
+      // Handle delete confirmation
+      confirmBtn.addEventListener('click', function() {
+        // Send POST request to delete candidate submission and integrity data
+        fetch('/admin/api/submission/delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userId,
+            examId: examId,
+            submissionId: submissionId
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          alert('Records successfully deleted. The candidate can now retake the test.');
+          // Redirect to candidates list for this exam
+          window.location.href = '/admin/exam/candidates/' + examId;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error deleting records. Please try again.');
+        })
+        .finally(() => {
+          modal.style.display = 'none';
+        });
+      });
+      
+      // Close modal if user clicks outside of it
+      window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
