@@ -7,6 +7,9 @@
     "start": "nodemon server.js",
     "build:css": "npx tailwindcss -i ./public/css/landing.css -o ./public/css/style.css --watch",
     "seed:departments": "node scripts/seedDepartments.js",
+    "cleanup:sessions": "node scripts/cleanupOrphanedSessions.js",
+    "clean:database": "node scripts/cleanDatabase.js",
+    "audit:database": "node scripts/auditDatabase.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
