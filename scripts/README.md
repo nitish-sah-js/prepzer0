@@ -69,11 +69,11 @@ const departments = [
 ### Expected Output
 
 ```
-=� Starting Department Seed Script
+=� Starting Department Seed Script
 
  MongoDB Connected Successfully
 
-=� Found 0 existing departments
+=� Found 0 existing departments
 
 <1 Seeding departments...
 
@@ -86,9 +86,9 @@ const departments = [
  Created: EE - Electrical Engineering
  Created: AD - Automation & Robotics
 
-<� Successfully seeded 8 departments!
+<� Successfully seeded 8 departments!
 
-=� All Departments in Database:
+=� All Departments in Database:
 ================================
 AD   | Automation & Robotics        |  Active
 AI   | Artificial Intelligence      |  Active
@@ -129,6 +129,136 @@ If you need to re-seed the departments:
 **Warning: Departments already exist**
 - This is expected if you've already run the seed script
 - Delete existing departments if you want to re-seed
+
+## Orphaned Session Cleanup Script
+
+### Overview
+The `cleanupOrphanedSessions.js` script identifies and reports on orphaned database references that can cause missing exam data issues.
+
+### When to Use This Script
+Run this script if you notice:
+- Students showing "active" status forever after exams end
+- "User doesn't exist" errors in exam candidate views
+- Exam submissions not displaying or showing as "[DELETED USER]"
+- Inconsistent activity status displays
+- Missing student data despite submissions existing
+
+### What It Does
+**Part 1: ActivityTracker Cleanup**
+1. Scans all ActivityTracker records in the database
+2. Identifies sessions where:
+   - The userId field is null or undefined
+   - The referenced User document no longer exists
+3. Automatically marks orphaned sessions as "offline"
+
+**Part 2: Submission Integrity Check**
+1. Scans all Submission records in the database
+2. Identifies submissions where:
+   - The student field is null
+   - The referenced User document no longer exists
+3. Reports orphaned submissions (does not delete them)
+4. Provides detailed summary of findings
+
+### How to Run
+
+#### Method 1: Using npm script (Recommended)
+```bash
+npm run cleanup:sessions
+```
+
+#### Method 2: Direct execution
+```bash
+node scripts/cleanupOrphanedSessions.js
+```
+
+### Prerequisites
+- MongoDB must be running
+- `.env` file must be configured with `MONGODB_URI`
+- ActivityTracker and User models must exist
+
+### Expected Output
+
+```
+🧼 Orphaned Session Cleanup Script
+
+✅ MongoDB Connected Successfully
+
+🔍 Starting orphaned session cleanup...
+
+📄 Found 150 total activity sessions
+⚠️  Session 507f1f77bcf86cd799439011 references non-existent user 507f191e810c19729de860ea
+
+📊 Cleanup Summary:
+================================
+Total sessions checked: 150
+Orphaned sessions found: 3
+Sessions updated to offline: 3
+================================
+
+⚠️  WARNING: Orphaned sessions detected!
+This indicates that some User records were deleted while students had active sessions.
+These sessions have been marked as offline.
+
+Orphaned session IDs:
+  - 507f1f77bcf86cd799439011
+  - 507f1f77bcf86cd799439012
+  - 507f1f77bcf86cd799439013
+
+🔍 Checking for orphaned submissions...
+
+📄 Found 200 total submissions
+⚠️  Submission 507f2a88bcf86cd799439022 references non-existent student 507f191e810c19729de860ea
+
+📊 Submission Cleanup Summary:
+================================
+Total submissions checked: 200
+Orphaned submissions found: 2
+================================
+
+⚠️  WARNING: Orphaned submissions detected!
+These submissions reference students that no longer exist in the database.
+The exam data exists but cannot be displayed properly.
+
+Orphaned submission IDs:
+  - 507f2a88bcf86cd799439022
+  - 507f2a88bcf86cd799439023
+
+💡 Recommendation: Review why students were deleted while having active submissions.
+💡 Consider implementing soft deletes for User records instead of hard deletes.
+
+✨ Cleanup script completed successfully!
+```
+
+### Automatic Handling
+**Note**: The system now automatically handles orphaned data when viewing exam candidates:
+- **Orphaned ActivityTracker sessions**: Automatically marked as offline
+- **Orphaned Submissions**: Displayed with "[DELETED USER]" placeholder and "User Deleted" status
+- **Submission data is preserved**: Scores and submission times are still visible to admins
+
+This script is provided for:
+- Identifying existing orphaned records in the database
+- Manual verification of database integrity
+- Troubleshooting missing exam data issues
+- Understanding the scope of data integrity problems
+
+### Troubleshooting
+
+**Error: MongoDB Connection Failed**
+- Ensure MongoDB is running
+- Check your `.env` file has correct `MONGODB_URI`
+- Verify network connectivity
+
+**Warning: Many orphaned sessions or submissions found**
+- This typically indicates users were deleted while they had active exam sessions or existing submissions
+- Review your user deletion procedures - users should NOT be deleted if they have submitted exams
+- **IMPORTANT**: Implement soft deletes for User records instead of hard deletes
+- Consider adding a pre-delete hook that checks for existing submissions before allowing user deletion
+
+**Orphaned submissions showing "[DELETED USER]" in exam candidates page**
+- This is expected behavior after running the cleanup script
+- The submission data is preserved and visible to admins
+- These entries indicate that the student's User account was deleted after submitting the exam
+- To prevent this: Do not delete User records if they have exam submissions
 
 ## Adding More Scripts
 

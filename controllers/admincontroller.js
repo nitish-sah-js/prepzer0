@@ -1358,35 +1358,64 @@ async function handleCandidatesDataRequest(req, res, examId) {
         .populate('userId', 'USN email Department Semester Rollno _id fname lname')
         .select('userId status lastPingTimestamp')
         .sort({ lastPingTimestamp: -1 });
-    
+
     // Update status to offline for students who have submitted
+    // Also handle orphaned sessions where userId populate failed
     const updatePromises = [];
+    const orphanedSessionIds = [];
+
     activeSessions.forEach(session => {
-        if (session.userId && session.userId._id) {
-            const studentId = session.userId._id.toString();
-            
-            if (submittedStudentIds.has(studentId) && session.status !== 'offline') {
+        // Check if this is an orphaned session (userId populate failed)
+        if (!session.userId || !session.userId._id) {
+            console.warn(`Orphaned ActivityTracker session found: ${session._id} - userId reference is invalid`);
+
+            // Mark orphaned session as offline and track for potential cleanup
+            if (session.status !== 'offline') {
                 updatePromises.push(
                     ActivityTracker.findByIdAndUpdate(
                         session._id,
-                        { 
+                        {
                             status: 'offline',
-                            $push: { 
-                                pingHistory: { 
-                                    timestamp: new Date(), 
-                                    status: 'offline' 
-                                } 
+                            $push: {
+                                pingHistory: {
+                                    timestamp: new Date(),
+                                    status: 'offline'
+                                }
                             }
                         }
                     )
                 );
                 session.status = 'offline';
             }
+            orphanedSessionIds.push(session._id);
+            return; // Skip this session from further processing
+        }
+
+        const studentId = session.userId._id.toString();
+
+        // If student has submitted, update their status to offline
+        if (submittedStudentIds.has(studentId) && session.status !== 'offline') {
+            updatePromises.push(
+                ActivityTracker.findByIdAndUpdate(
+                    session._id,
+                    {
+                        status: 'offline',
+                        $push: {
+                            pingHistory: {
+                                timestamp: new Date(),
+                                status: 'offline'
+                            }
+                        }
+                    }
+                )
+            );
+            session.status = 'offline';
         }
     });
-    
+
     if (updatePromises.length > 0) {
         await Promise.all(updatePromises);
+        console.log(`Updated ${updatePromises.length} session statuses to offline (including ${orphanedSessionIds.length} orphaned sessions)`);
     }
     
     // Convert active sessions to a map
@@ -1410,14 +1439,14 @@ async function handleCandidatesDataRequest(req, res, examId) {
         if (submission.student && submission.student._id && !studentMap.has(submission.student._id.toString())) {
             const studentId = submission.student._id.toString();
             const activeSession = activeSessionsMap.get(studentId);
-            
+
             // Get MCQ score - use pre-calculated score from submission (OPTIMIZED!)
             let mcqScore = submission.score || 0;
-            
+
             // Get coding score
             let codingScore = 0;
             let isEvaluated = false;
-            
+
             if (hasCoding) {
                 const evaluation = evaluationMap.get(studentId);
                 if (evaluation) {
@@ -1428,7 +1457,7 @@ async function handleCandidatesDataRequest(req, res, examId) {
 
             const totalScore = mcqScore + codingScore;
             const totalPossible = maxMCQScore + maxCodingScore;
-            
+
             let displayScore = '';
             if (hasMCQ && hasCoding) {
                 if (isEvaluated) {
@@ -1447,7 +1476,7 @@ async function handleCandidatesDataRequest(req, res, examId) {
             } else {
                 displayScore = 'N/A';
             }
-            
+
             studentMap.set(studentId, {
                 student: submission.student,
                 submission: submission,
@@ -1458,15 +1487,65 @@ async function handleCandidatesDataRequest(req, res, examId) {
                 maxMCQScore: maxMCQScore,
                 maxCodingScore: maxCodingScore,
                 maxTotalScore: totalPossible,
-                evaluationStatus: hasCoding ? 
+                evaluationStatus: hasCoding ?
                     (isEvaluated ? 'Evaluated' : 'Pending Evaluation') : 'N/A',
                 submittedAt: submission.submittedAt,
                 activityStatus: activeSession ? activeSession.status : 'offline',
                 lastActive: activeSession ? activeSession.lastPing : null,
                 hasSubmitted: true
             });
-            
+
             activeSessionsMap.delete(studentId);
+        } else if (!submission.student || !submission.student._id) {
+            // ORPHANED SUBMISSION: Student reference is missing or invalid
+            console.warn(`Orphaned submission found: ${submission._id} - student reference is invalid`);
+
+            // Create a unique ID for orphaned submission (use submission ID)
+            const orphanedId = `orphaned_${submission._id}`;
+
+            // Get MCQ score from submission
+            let mcqScore = submission.score || 0;
+
+            // Create placeholder student object
+            const placeholderStudent = {
+                _id: submission.student || 'unknown',
+                USN: '[DELETED USER]',
+                fname: 'Student',
+                lname: 'Deleted',
+                email: 'deleted@user',
+                Department: 'N/A',
+                Semester: 'N/A',
+                Rollno: 'N/A'
+            };
+
+            let displayScore = '';
+            if (hasMCQ && hasCoding) {
+                displayScore = `${mcqScore}/${maxMCQScore} + Unavailable`;
+            } else if (hasMCQ) {
+                displayScore = `${mcqScore}/${maxMCQScore}`;
+            } else if (hasCoding) {
+                displayScore = 'Data Unavailable';
+            } else {
+                displayScore = 'N/A';
+            }
+
+            studentMap.set(orphanedId, {
+                student: placeholderStudent,
+                submission: submission,
+                score: displayScore,
+                mcqScore: mcqScore,
+                codingScore: 0,
+                totalScore: mcqScore,
+                maxMCQScore: maxMCQScore,
+                maxCodingScore: maxCodingScore,
+                maxTotalScore: maxMCQScore + maxCodingScore,
+                evaluationStatus: 'User Deleted',
+                submittedAt: submission.submittedAt,
+                activityStatus: 'offline',
+                lastActive: null,
+                hasSubmitted: true,
+                isOrphaned: true  // Flag to identify orphaned submissions
+            });
         }
     }
     
