@@ -10,6 +10,7 @@ const questionController = require("../controllers/questioncontroller");
 const mcqquestions = require("../controllers/allmcqcontroller");
 const reportController = require("../controllers/reportController");
 const databaseController = require("../controllers/dbQuestionsController");
+const departmentController = require("../controllers/departmentcontroller");
 
 router.route("/").get(admincontroller.getcontrol).post(admincontroller.postcontrol)
 
@@ -105,12 +106,17 @@ router.route('/exam/:examId/database/add').post(databaseController.addSelectedQu
 // Add randomly selected questions
 router.route('/exam/:examId/database/random').post(databaseController.addRandomQuestions);
 
+// Department management routes (old user-based)
+router.route('/manage-departments').get(admincontroller.getManageDepartments).post(admincontroller.postManageDepartments);
 
+// Department CRUD routes (new schema-based)
+router.route('/departments').get(departmentController.getDepartments);
+router.route('/departments/create').post(departmentController.createDepartment);
+router.route('/departments/:id').put(departmentController.updateDepartment);
+router.route('/departments/:id').delete(departmentController.deleteDepartment);
+router.route('/departments/:id/toggle').patch(departmentController.toggleDepartmentStatus);
 
-
-
-
-
-
+// API route for getting active departments
+router.route('/api/departments/active').get(departmentController.getActiveDepartments);
 
 module.exports=router

@@ -4,6 +4,7 @@ const ActivityTracker = require("../models/ActiveSession");
 const ReportModel = require('../models/reportModel');
 const ExamCandidate = require('../models/ExamCandidate');
 const User = require("./../models/usermodel");
+const Department = require("../models/Department");
 const { v4: uuidv4 } = require("uuid");
 const passport = require("passport");
 const moment = require("moment-timezone");
@@ -31,7 +32,29 @@ exports.getExam = async (req, res) => {
         console.log("authenticated");
         const Userprofile = await User.findById({ _id: req.user.id });
         if (Userprofile.usertype === "admin" || Userprofile.usertype === "teacher") {
-            res.render("create_exam1", { pic: Userprofile.imageurl, logged_in: "true" });
+            // Fetch all active departments from database
+            const departments = await Department.find({ active: true }).sort({ code: 1 });
+
+            // If no departments exist, redirect to create one
+            if (departments.length === 0) {
+                res.redirect("/admin/departments?message=Please create departments first");
+                return;
+            }
+
+            // For teachers, filter by managed departments if they have any selected
+            let availableDepartments = departments;
+            if (Userprofile.usertype === "teacher" && Userprofile.managedDepartments && Userprofile.managedDepartments.length > 0) {
+                availableDepartments = departments.filter(dept =>
+                    Userprofile.managedDepartments.includes(dept.code)
+                );
+            }
+
+            res.render("create_exam1", {
+                pic: Userprofile.imageurl,
+                logged_in: "true",
+                departments: availableDepartments,
+                user: Userprofile
+            });
         } else {
             res.redirect("/admin/login");
         }
@@ -771,7 +794,30 @@ exports.getEditExam = async (req, res) => {
             try {
                 const exam = await Exam.findById(req.params.examId);
                 if (!exam) return res.status(404).send("Exam not found.");
-                res.render("edit_exam", { pic: Userprofile.imageurl, logged_in: "true", exam });
+
+                // Fetch all active departments from database
+                const departments = await Department.find({ active: true }).sort({ code: 1 });
+
+                // If no departments exist, redirect to create one
+                if (departments.length === 0) {
+                    return res.redirect("/admin/departments?message=Please create departments first");
+                }
+
+                // For teachers, filter by managed departments if they have any selected
+                let availableDepartments = departments;
+                if (Userprofile.usertype === "teacher" && Userprofile.managedDepartments && Userprofile.managedDepartments.length > 0) {
+                    availableDepartments = departments.filter(dept =>
+                        Userprofile.managedDepartments.includes(dept.code)
+                    );
+                }
+
+                res.render("edit_exam", {
+                    pic: Userprofile.imageurl,
+                    logged_in: "true",
+                    exam,
+                    departments: availableDepartments,
+                    user: Userprofile
+                });
             } catch (error) {
                 console.error(error);
                 res.status(500).send("Server error");

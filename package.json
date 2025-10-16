@@ -6,6 +6,7 @@
   "scripts": {
     "start": "nodemon server.js",
     "build:css": "npx tailwindcss -i ./public/css/landing.css -o ./public/css/style.css --watch",
+    "seed:departments": "node scripts/seedDepartments.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

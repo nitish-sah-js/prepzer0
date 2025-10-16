@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Departments - PrepZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --dark-bg: #111827;
+            --card-bg: #1f2937;
+            --light-text: #f9fafb;
+            --secondary-text: #9ca3af;
+            --border-color: #374151;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            min-height: 100vh;
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-section img {
+            width: 36px;
+            height: 36px;
+            margin-right: 0.75rem;
+        }
+
+        .logo-section h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            background: linear-gradient(to right, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .btn {
+            border-radius: 0.375rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-warning {
+            background-color: var(--warning);
+            color: #000;
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn i {
+            margin-right: 0.5rem;
+        }
+
+        .table-container {
+            padding: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            color: var(--secondary-text);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(75, 85, 99, 0.3);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-dialog {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            padding: 0;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .close {
+            background: none;
+            border: none;
+            color: var(--secondary-text);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            background-color: rgba(75, 85, 99, 0.3);
+            color: var(--light-text);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--secondary-text);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-section">
+            <img src="../uploads/unnamed-removebg-preview.png" alt="Logo">
+            <h1>PrepZer0</h1>
+        </div>
+        <div>
+            <a href="/admin" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="alertContainer"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Department Management</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="fas fa-plus"></i> Add Department
+                </button>
+            </div>
+
+            <div class="table-container">
+                <% if (departments && departments.length > 0) { %>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Full Name</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% departments.forEach(dept => { %>
+                                <tr>
+                                    <td><strong><%= dept.code.toUpperCase() %></strong></td>
+                                    <td><%= dept.name %></td>
+                                    <td><%= dept.fullName || '-' %></td>
+                                    <td>
+                                        <span class="badge <%= dept.active ? 'badge-success' : 'badge-danger' %>">
+                                            <%= dept.active ? 'Active' : 'Inactive' %>
+                                        </span>
+                                    </td>
+                                    <td><%= new Date(dept.createdAt).toLocaleDateString() %></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" onclick='editDepartment(<%= JSON.stringify(dept) %>)'>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm <%= dept.active ? 'btn-secondary' : 'btn-success' %>"
+                                                onclick="toggleStatus('<%= dept._id %>', <%= dept.active %>)">
+                                            <i class="fas fa-<%= dept.active ? 'ban' : 'check' %>"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteDepartment('<%= dept._id %>', '<%= dept.name %>')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                <% } else { %>
+                    <div class="empty-state">
+                        <i class="fas fa-building"></i>
+                        <h3>No Departments Found</h3>
+                        <p>Create your first department to get started</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="departmentModal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Add Department</h3>
+                    <button class="close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="departmentForm">
+                        <input type="hidden" id="deptId">
+
+                        <div class="form-group">
+                            <label class="form-label">Department Code *</label>
+                            <input type="text" id="code" class="form-control" required
+                                   placeholder="e.g., cs, ise, ece" maxlength="10">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Department Name *</label>
+                            <input type="text" id="name" class="form-control" required
+                                   placeholder="e.g., Computer Science" maxlength="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" id="fullName" class="form-control"
+                                   placeholder="e.g., Department of Computer Science & Engineering" maxlength="150">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <textarea id="description" class="form-control" rows="3"
+                                      placeholder="Optional description" maxlength="500"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveDepartment()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = 'Add Department';
+            document.getElementById('departmentForm').reset();
+            document.getElementById('deptId').value = '';
+            document.getElementById('departmentModal').style.display = 'block';
+        }
+
+        function editDepartment(dept) {
+            document.getElementById('modalTitle').textContent = 'Edit Department';
+            document.getElementById('deptId').value = dept._id;
+            document.getElementById('code').value = dept.code;
+            document.getElementById('name').value = dept.name;
+            document.getElementById('fullName').value = dept.fullName || '';
+            document.getElementById('description').value = dept.description || '';
+            document.getElementById('departmentModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('departmentModal').style.display = 'none';
+        }
+
+        async function saveDepartment() {
+            const deptId = document.getElementById('deptId').value;
+            const data = {
+                code: document.getElementById('code').value.trim(),
+                name: document.getElementById('name').value.trim(),
+                fullName: document.getElementById('fullName').value.trim(),
+                description: document.getElementById('description').value.trim()
+            };
+
+            if (!data.code || !data.name) {
+                showAlert('Code and Name are required', 'danger');
+                return;
+            }
+
+            try {
+                const url = deptId ? `/admin/departments/${deptId}` : '/admin/departments/create';
+                const method = deptId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    closeModal();
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showAlert(result.message, 'danger');
+                }
+            } catch (error) {
+                showAlert('An error occurred', 'danger');
+            }
+        }
+
+        async function toggleStatus(id, currentStatus) {
+            if (!confirm(`Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this department?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/departments/${id}/toggle`, {
+                    method: 'PATCH'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showAlert(result.message, 'danger');
+                }
+            } catch (error) {
+                showAlert('An error occurred', 'danger');
+            }
+        }
+
+        async function deleteDepartment(id, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/departments/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showAlert(result.message, 'danger');
+                }
+            } catch (error) {
+                showAlert('An error occurred', 'danger');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('departmentModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

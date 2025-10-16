@@ -729,40 +729,26 @@ body {
                         </div>
 
                         <div class="form-group full-width">
-                            <label class="form-label">Departments</label>
+                            <label class="form-label">Departments
+                                <% if (user.usertype === 'admin') { %>
+                                    <a href="/admin/departments" style="font-size: 0.875rem; color: var(--primary-color);">(Manage Departments)</a>
+                                <% } else { %>
+                                    <a href="/admin/manage-departments" style="font-size: 0.875rem; color: var(--primary-color);">(Edit My Departments)</a>
+                                <% } %>
+                            </label>
                             <div class="departments-container">
-                                                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-cg" name="departments" value="cg" class="form-check-input">
-                                    <label class="form-check-label" for="dept-mca">CG</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-mca" name="departments" value="ad" class="form-check-input">
-                                    <label class="form-check-label" for="dept-mca">AD</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ise" name="departments" value="is" class="form-check-input">
-                                    <label class="form-check-label" for="dept-ise">ISE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-cse" name="departments" value="cs" class="form-check-input">
-                                    <label class="form-check-label" for="dept-cse">CSE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ete" name="departments" value="et" class="form-check-input">
-                                    <label class="form-check-label" for="dept-ete">ETE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ece" name="departments" value="ec" class="form-check-input">
-                                    <label class="form-check-label" for="dept-ece">ECE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ai" name="departments" value="ai" class="form-check-input">
-                                    <label class="form-check-label" for="dept-ai">AI</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-civil" name="departments" value="cv" class="form-check-input">
-                                    <label class="form-check-label" for="dept-civil">Civil</label>
-                                </div>
+                                <% if (departments && departments.length > 0) { %>
+                                    <% departments.forEach((dept) => { %>
+                                        <div class="form-check form-check-inline">
+                                            <input type="checkbox" id="dept-<%= dept.code %>" name="departments" value="<%= dept.code %>" class="form-check-input">
+                                            <label class="form-check-label" for="dept-<%= dept.code %>" title="<%= dept.fullName || dept.name %>">
+                                                <%= dept.code.toUpperCase() %> - <%= dept.name %>
+                                            </label>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <p style="color: var(--warning);">No departments available. <a href="/admin/departments">Create departments first</a>.</p>
+                                <% } %>
                             </div>
 
                             <!-- Department requirement notice -->

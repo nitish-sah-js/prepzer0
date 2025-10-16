@@ -577,35 +577,18 @@
                         <div class="form-group full-width">
                             <label class="form-label">Departments</label>
                             <div class="departments-container">
-
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ad" name="departments" value="ad" class="form-check-input" <%= exam.departments && exam.departments.includes('ad') ? 'checked' : '' %>>
-                                    <label class="form-check-label" for="dept-ad">AD</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ise" name="departments" value="is" class="form-check-input" <%= exam.departments && exam.departments.includes('is') ? 'checked' : '' %>>
-                                    <label class="form-check-label" for="dept-ise">ISE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-cse" name="departments" value="cs" class="form-check-input" <%= exam.departments && exam.departments.includes('cs') ? 'checked' : '' %>>
-                                    <label class="form-check-label" for="dept-cse">CSE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ete" name="departments" value="et" class="form-check-input" <%= exam.departments && exam.departments.includes('et') ? 'checked' : '' %>>
-                                    <label class="form-check-label" for="dept-ete">ETE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ece" name="departments" value="ec" class="form-check-input" <%= exam.departments && exam.departments.includes('ec') ? 'checked' : '' %>>
-                                    <label class="form-check-label" for="dept-ece">ECE</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-ai" name="departments" value="ai" class="form-check-input" <%= exam.departments && exam.departments.includes('ai') ? 'checked' : '' %>>
-                                    <label class="form-check-label" for="dept-ai">AI</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="checkbox" id="dept-civil" name="departments" value="cg" class="form-check-input" <%= exam.departments && exam.departments.includes('cg') ? 'checked' : '' %>>
-                                    <label class="form-check-label" for="dept-civil">CG</label>
-                                </div>
+                                <% if (departments && departments.length > 0) { %>
+                                    <% departments.forEach((dept) => { %>
+                                        <div class="form-check form-check-inline">
+                                            <input type="checkbox" id="dept-<%= dept.code %>" name="departments" value="<%= dept.code %>" class="form-check-input" <%= exam.departments && exam.departments.includes(dept.code) ? 'checked' : '' %>>
+                                            <label class="form-check-label" for="dept-<%= dept.code %>" title="<%= dept.fullName || dept.name %>">
+                                                <%= dept.code.toUpperCase() %> - <%= dept.name %>
+                                            </label>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <p style="color: #f59e0b;">No departments available. <a href="/admin/departments" style="color: #3b82f6;">Create departments first</a>.</p>
+                                <% } %>
                             </div>
                             
                             <div class="mt-3 d-flex justify-content-between">

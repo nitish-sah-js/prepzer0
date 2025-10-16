@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Departments - PrepZer0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --dark-bg: #111827;
+            --card-bg: #1f2937;
+            --light-text: #f9fafb;
+            --secondary-text: #9ca3af;
+            --border-color: #374151;
+            --success: #10b981;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            min-height: 100vh;
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-section img {
+            width: 36px;
+            height: 36px;
+            margin-right: 0.75rem;
+        }
+
+        .logo-section h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            background: linear-gradient(to right, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-subtitle {
+            color: var(--secondary-text);
+            margin-bottom: 2rem;
+        }
+
+        .department-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .department-card {
+            background-color: rgba(75, 85, 99, 0.3);
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .department-card:hover {
+            border-color: var(--primary);
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+
+        .department-card.selected {
+            border-color: var(--primary);
+            background-color: rgba(79, 70, 229, 0.2);
+        }
+
+        .department-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .department-info i {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+            color: var(--primary);
+        }
+
+        .department-label {
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+        }
+
+        .btn {
+            border-radius: 0.375rem;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-text);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #6b7280;
+        }
+
+        .btn i {
+            margin-right: 0.5rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-section">
+            <img src="../uploads/unnamed-removebg-preview.png" alt="Logo">
+            <h1>PrepZer0</h1>
+        </div>
+        <div>
+            <a href="/admin" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2 class="card-title">Manage Departments</h2>
+            <p class="card-subtitle">
+                Select the departments you are in charge of. Only these departments will be available when creating exams.
+            </p>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="departmentForm">
+                <div class="department-grid">
+                    <%
+                    const departmentNames = {
+                        'cg': 'Computer Graphics',
+                        'ad': 'Application Development',
+                        'is': 'Information Science',
+                        'cs': 'Computer Science',
+                        'et': 'Electronics & Telecommunication',
+                        'ec': 'Electronics & Communication',
+                        'ai': 'Artificial Intelligence',
+                        'cv': 'Civil Engineering',
+                        'ee': 'Electrical Engineering'
+                    };
+
+                    allDepartments.forEach(dept => {
+                        const isSelected = managedDepartments.includes(dept);
+                    %>
+                        <div class="department-card <%= isSelected ? 'selected' : '' %>" onclick="toggleDepartment(this, '<%= dept %>')">
+                            <div class="department-info">
+                                <i class="fas fa-graduation-cap"></i>
+                                <div>
+                                    <div class="department-label"><%= dept.toUpperCase() %></div>
+                                    <div style="font-size: 0.75rem; color: var(--secondary-text);"><%= departmentNames[dept] %></div>
+                                </div>
+                            </div>
+                            <input type="checkbox" name="departments" value="<%= dept %>" class="checkbox-custom" <%= isSelected ? 'checked' : '' %>>
+                        </div>
+                    <% }); %>
+                </div>
+
+                <div class="actions">
+                    <a href="/admin" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleDepartment(card, dept) {
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        }
+
+        document.getElementById('departmentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const departments = formData.getAll('departments');
+
+            try {
+                const response = await fetch('/admin/manage-departments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ departments: departments })
+                });
+
+                const result = await response.json();
+
+                const alert = document.getElementById('alert');
+                if (result.success) {
+                    alert.className = 'alert alert-success';
+                    alert.textContent = result.message;
+                    alert.style.display = 'block';
+
+                    // Redirect to admin dashboard after 1.5 seconds
+                    setTimeout(() => {
+                        window.location.href = '/admin';
+                    }, 1500);
+                } else {
+                    alert.className = 'alert alert-error';
+                    alert.textContent = result.message || 'Failed to save departments';
+                    alert.style.display = 'block';
+                }
+            } catch (error) {
+                const alert = document.getElementById('alert');
+                alert.className = 'alert alert-error';
+                alert.textContent = 'An error occurred while saving';
+                alert.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,110 +1,140 @@
-# Scripts Directory
+# Scripts Documentation
 
-This directory contains utility scripts for managing the PrepZer0 platform.
+This folder contains utility scripts for managing the PrepZer0 application.
 
-## Available Scripts
+## Department Seed Script
 
-### 1. `populate-students.js`
-Populates the database with students across all departments and years.
+### Overview
+The `seedDepartments.js` script populates the Department collection with 8 initial departments.
 
-**What it creates:**
-- **480 students** total (8 departments Ã— 4 years Ã— 15 students per semester)
-- Students for years: 2021 (8th sem), 2022 (6th sem), 2023 (4th sem), 2024 (2nd sem)
-- Departments: CG, AD, IS, CS, ET, EC, AI, CV
-- USN format: `1BY{year}{dept}{rollno}` (e.g., `1BY21CS001`)
+### Included Departments
 
-**Usage:**
+| Code | Name | Full Name |
+|------|------|-----------|
+| CS | Computer Science | Department of Computer Science & Engineering |
+| IS | Information Science | Department of Information Science & Engineering |
+| EC | Electronics & Communication | Department of Electronics & Communication Engineering |
+| ET | Electronics & Telecommunication | Department of Electronics & Telecommunication Engineering |
+| AI | Artificial Intelligence | Department of Artificial Intelligence & Machine Learning |
+| CV | Civil Engineering | Department of Civil Engineering |
+| EE | Electrical Engineering | Department of Electrical & Electronics Engineering |
+| AD | Automation & Robotics | Department of Automation & Robotics |
+
+### How to Run
+
+#### Method 1: Using npm script (Recommended)
 ```bash
-node scripts/populate-students.js
+npm run seed:departments
 ```
 
-**Student Credentials:**
-- **Email format**: `{usn}@student.edu` (e.g., `1by21cs001@student.edu`)
-- **Password**: `student123` (same for all students)
-
-**Example Logins:**
-- Email: `1by21cs001@student.edu`, Password: `student123`
-- Email: `1by22is015@student.edu`, Password: `student123`
-- Email: `1by23ai010@student.edu`, Password: `student123`
-
-**Safe to re-run:** The script checks for existing students and skips them, so you can run it multiple times without creating duplicates.
-
----
-
-### 2. `populate-mcq-questions.js`
-Populates the database with 40 MCQ questions across various computer science topics.
-
-**What it creates:**
-- **40 MCQ questions** covering:
-  - Data Structures (8 questions)
-  - Algorithms (8 questions)
-  - DBMS (6 questions)
-  - Object-Oriented Programming (6 questions)
-  - Operating Systems (6 questions)
-  - Networking (6 questions)
-- Questions with varying difficulty levels (easy, medium, hard)
-- Each question has 4 options with 1 correct answer
-
-**Usage:**
+#### Method 2: Direct execution
 ```bash
-node scripts/populate-mcq-questions.js
+node scripts/seedDepartments.js
 ```
 
-**Question Format:**
-- Classification: Topic category
-- Question text with 4 options
-- Difficulty level: easy (1 mark), medium (2 marks), hard (3 marks)
-- Created by: System
+### Prerequisites
+- MongoDB must be running
+- `.env` file must be configured with `MONGODB_URI`
+- Department model must exist at `../models/Department.js`
 
-**Safe to re-run:** Script checks for existing questions by question text and skips duplicates.
+### Features
+-  Checks for existing departments before seeding
+-  Prevents duplicate entries
+-  Creates all departments with active status
+-  Provides detailed console output
+-  Displays summary of created departments
 
----
+### Safety Features
+- **Duplicate Prevention**: The script checks if departments already exist and skips seeding if any are found
+- **Error Handling**: Proper error messages and exit codes
+- **Validation**: Uses the Department model's built-in validation
 
-### 3. `create-admin.js`
-Creates an admin user account.
+### Customization
 
-**What it creates:**
-- Admin account with email: `earthlingaidtech@gmail.com`
-- Password: `1`
-- Full admin access enabled
+To modify the departments that are seeded, edit the `departments` array in `seedDepartments.js`:
 
-**Usage:**
-```bash
-node scripts/create-admin.js
+```javascript
+const departments = [
+    {
+        code: 'cs',              // Unique department code (lowercase)
+        name: 'Computer Science', // Display name
+        fullName: 'Department of Computer Science & Engineering', // Full official name
+        description: 'Description of the department', // Optional description
+        active: true             // Active status (true/false)
+    },
+    // Add more departments here...
+];
 ```
 
-**Admin Credentials:**
-- **Email**: earthlingaidtech@gmail.com
-- **Password**: 1
+### Expected Output
 
-**Note:** If an admin with this email already exists, it will be deleted and recreated.
+```
+=€ Starting Department Seed Script
 
----
+ MongoDB Connected Successfully
 
-## Adding New Scripts
+=Ê Found 0 existing departments
 
-When adding new utility scripts to this directory:
+<1 Seeding departments...
 
-1. Follow the naming convention: `action-noun.js` (e.g., `populate-students.js`, `create-admin.js`)
-2. Add proper error handling and logging
-3. Include a description in this README
-4. Make scripts idempotent (safe to run multiple times)
-5. Add usage examples
+ Created: CS - Computer Science
+ Created: IS - Information Science
+ Created: EC - Electronics & Communication
+ Created: ET - Electronics & Telecommunication
+ Created: AI - Artificial Intelligence
+ Created: CV - Civil Engineering
+ Created: EE - Electrical Engineering
+ Created: AD - Automation & Robotics
 
----
+<‰ Successfully seeded 8 departments!
 
-## Environment Setup
+=Ë All Departments in Database:
+================================
+AD   | Automation & Robotics        |  Active
+AI   | Artificial Intelligence      |  Active
+CS   | Computer Science             |  Active
+CV   | Civil Engineering            |  Active
+EC   | Electronics & Communication  |  Active
+EE   | Electrical Engineering       |  Active
+ET   | Electronics & Telecommunication |  Active
+IS   | Information Science          |  Active
+================================
 
-All scripts require:
-- `.env` file with `MONGODB_URI` configured
-- Node.js installed
-- All dependencies installed (`npm install`)
+( Seed script completed successfully!
+```
 
----
+### Re-seeding
 
-## Best Practices
+If you need to re-seed the departments:
 
-- **Always backup database** before running bulk operation scripts
-- **Test on development** environment first
-- **Review output** carefully after running scripts
-- **Keep credentials secure** - never commit actual passwords to version control
+1. Delete existing departments manually through:
+   - MongoDB Compass
+   - MongoDB shell: `db.departments.deleteMany({})`
+   - Admin interface at `/admin/departments`
+
+2. Run the seed script again
+
+### Troubleshooting
+
+**Error: MongoDB Connection Failed**
+- Ensure MongoDB is running
+- Check your `.env` file has correct `MONGODB_URI`
+- Verify network connectivity
+
+**Error: Department validation failed**
+- Check that all required fields are provided
+- Ensure department codes are unique
+- Verify all fields meet validation requirements
+
+**Warning: Departments already exist**
+- This is expected if you've already run the seed script
+- Delete existing departments if you want to re-seed
+
+## Adding More Scripts
+
+To add new seed or utility scripts:
+
+1. Create a new `.js` file in this folder
+2. Add a corresponding npm script in `package.json`
+3. Document it in this README
+4. Follow the same pattern as `seedDepartments.js`

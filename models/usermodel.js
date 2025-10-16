@@ -49,14 +49,21 @@ const UserSchema = new mongoose.Schema({
             type : String 
         }
         ,
-        Department :  { 
+        Department :  {
             type: String,
-            enum: ["cg","ad", "is", "cs", "et", "ec", "ai", "cv"] // enum: ["MCA", "ISE", "CSE", "ETE", "CIV", "COM", "AI"]
+            // Removed enum to allow dynamic departments from Department collection
              },
-      
+
+        // Departments that admin/teacher can manage (for exam creation)
+        managedDepartments: {
+            type: [String],
+            // Removed enum to allow dynamic departments from Department collection
+            default: []
+        },
+
         Year : {
             type : String ,
-            
+
         }
         ,
         admin_access : {

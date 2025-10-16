@@ -1571,3 +1571,79 @@ async function handleCandidatesDataRequest(req, res, examId) {
 
 // REMOVE: You can delete the separate examCandidatesData function
 // since it's now integrated into the main examCandidates function
+
+/**
+ * Department Management for Admin/Teacher
+ * GET /admin/manage-departments
+ */
+exports.getManageDepartments = async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.redirect('/admin/login');
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin' && user.usertype !== 'teacher') {
+            return res.redirect('/');
+        }
+
+        const allDepartments = ['cg', 'ad', 'is', 'cs', 'et', 'ec', 'ai', 'cv', 'ee'];
+
+        res.render('manage_departments', {
+            pic: user.imageurl,
+            logged_in: "true",
+            allDepartments: allDepartments,
+            managedDepartments: user.managedDepartments || [],
+            user: user
+        });
+    } catch (error) {
+        console.error('Error loading department management page:', error);
+        res.status(500).send('Server error');
+    }
+};
+
+/**
+ * Save Department Selection
+ * POST /admin/manage-departments
+ */
+exports.postManageDepartments = async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin' && user.usertype !== 'teacher') {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+
+        // Get selected departments from request body
+        let selectedDepartments = req.body.departments;
+
+        // Ensure it's an array
+        if (typeof selectedDepartments === 'string') {
+            selectedDepartments = [selectedDepartments];
+        } else if (!selectedDepartments) {
+            selectedDepartments = [];
+        }
+
+        // Validate departments
+        const validDepartments = ['cg', 'ad', 'is', 'cs', 'et', 'ec', 'ai', 'cv', 'ee'];
+        const filteredDepartments = selectedDepartments.filter(dept => validDepartments.includes(dept));
+
+        // Update user's managed departments
+        user.managedDepartments = filteredDepartments;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Departments updated successfully',
+            managedDepartments: filteredDepartments
+        });
+    } catch (error) {
+        console.error('Error saving departments:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
