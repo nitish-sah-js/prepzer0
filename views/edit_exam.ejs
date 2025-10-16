@@ -302,7 +302,145 @@
             font-size: 1.1rem;
             line-height: 1;
         }
-        
+
+        /* Excel Upload Button */
+        .btn-excel-upload {
+            background-color: #059669;
+            color: white;
+            border: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+
+        .btn-excel-upload:hover {
+            background-color: #047857;
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+            color: white;
+        }
+
+        /* Excel Upload Section */
+        .excel-upload-section {
+            border: 2px dashed #4b5563;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            background-color: #2d3748;
+            transition: all 0.3s ease;
+        }
+
+        .excel-upload-section .upload-area {
+            text-align: center;
+            cursor: pointer;
+            padding: 20px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .excel-upload-section .upload-area:hover {
+            background-color: #374151;
+            border-color: #6b7280;
+        }
+
+        .excel-upload-section.drag-over .upload-area {
+            border-color: var(--primary-color);
+            background-color: rgba(29, 78, 216, 0.1);
+        }
+
+        .excel-upload-section .upload-icon {
+            font-size: 2rem;
+            color: #9ca3af;
+            margin-bottom: 10px;
+        }
+
+        .excel-upload-section .upload-text {
+            color: #e2e8f0;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .excel-upload-section .upload-subtext {
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        .excel-file-input {
+            display: none;
+        }
+
+        /* Excel Candidates Section */
+        .excel-candidates-section {
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            background-color: #2d3748;
+        }
+
+        .excel-candidates-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .excel-candidates-title {
+            color: #e2e8f0;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .excel-stats {
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        .excel-candidates-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            padding: 10px;
+            background-color: #374151;
+        }
+
+        .excel-candidate-item {
+            padding: 6px 10px;
+            margin: 2px 0;
+            background-color: #4b5563;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .excel-candidate-usn {
+            font-weight: 500;
+            color: #93c5fd;
+        }
+
+        .excel-clear-btn {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .excel-clear-btn:hover {
+            background-color: #b91c1c;
+        }
+
         /* Modal styling */
         .modal-content {
             border-radius: 12px;
@@ -592,15 +730,61 @@
                             </div>
                             
                             <div class="mt-3 d-flex justify-content-between">
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#selectCandidatesModal">
-                                    <i class="bi bi-person-plus"></i> Select Additional Candidates
-                                </button>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#selectCandidatesModal">
+                                        <i class="bi bi-person-plus"></i> Select Additional Candidates
+                                    </button>
+                                    <button type="button" class="btn-excel-upload" onclick="triggerExcelUpload()">
+                                        <i class="bi bi-file-earmark-excel"></i> Add Candidates Using Excel
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="downloadExcelTemplate()">
+                                        <i class="bi bi-download"></i> Download Template
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#excelHelpModal">
+                                        <i class="bi bi-question-circle"></i> Format Help
+                                    </button>
+                                </div>
                                 <button type="submit" name="action" value="create" class="btn-create-exam">
                                     <i class="bi bi-check-circle"></i> Update Exam
                                 </button>
                             </div>
                         </div>
                         
+                        <!-- Excel Upload Section -->
+                        <div id="excelUploadSection" class="excel-upload-section full-width" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0 text-light">Upload Excel File</h6>
+                                <button type="button" class="btn-close btn-close-white" onclick="hideExcelUpload()" aria-label="Close"></button>
+                            </div>
+                            <div onclick="triggerFileUpload()" style="cursor: pointer;">
+                                <div class="upload-icon">
+                                    <i class="bi bi-cloud-upload"></i>
+                                </div>
+                                <div class="upload-text">Click to upload Excel file or drag and drop</div>
+                                <div class="upload-subtext">
+                                    Supported formats: .xlsx, .xls<br>
+                                    <small><strong>Required:</strong> Excel file must contain a column with "USN" in the header</small>
+                                </div>
+                            </div>
+                            <input type="file" id="excelFileInput" class="excel-file-input" accept=".xlsx,.xls" onchange="handleExcelUpload(event)">
+                        </div>
+
+                        <!-- Excel Candidates Display -->
+                        <div id="excelCandidatesSection" class="excel-candidates-section full-width" style="display: none;">
+                            <div class="excel-candidates-header">
+                                <h6 class="excel-candidates-title">Excel Candidates</h6>
+                                <div class="excel-stats">
+                                    <span id="excelCandidatesCount">0</span> candidates found
+                                    <button type="button" class="excel-clear-btn ms-2" onclick="clearExcelCandidates()">
+                                        <i class="bi bi-x"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="excelCandidatesList" class="excel-candidates-list"></div>
+                            <!-- Hidden input to store excel candidates USNs -->
+                            <input type="hidden" id="excelCandidatesInput" name="excelCandidates">
+                        </div>
+
                         <!-- Selected candidates display section -->
                         <div id="selectedCandidatesSection" class="selected-candidates-container full-width" style="display: none;">
                             <label class="form-label">Selected Additional Candidates</label>
@@ -757,6 +941,93 @@
         </div>
     </div>
 
+    <!-- Excel Help Modal -->
+    <div class="modal fade" id="excelHelpModal" tabindex="-1" aria-labelledby="excelHelpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="excelHelpModalLabel">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Excel File Format Guide
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Required:</strong> Your Excel file must contain a column with "USN" in the header name.
+                    </div>
+
+                    <h6><i class="bi bi-check-circle text-success"></i> Accepted File Formats:</h6>
+                    <ul>
+                        <li>.xlsx (Excel 2007+)</li>
+                        <li>.xls (Excel 97-2003)</li>
+                    </ul>
+
+                    <h6><i class="bi bi-check-circle text-success"></i> Accepted USN Column Names:</h6>
+                    <ul>
+                        <li>USN</li>
+                        <li>Student USN</li>
+                        <li>Roll Number</li>
+                        <li>Registration Number</li>
+                        <li>Any column containing "USN"</li>
+                    </ul>
+
+                    <h6><i class="bi bi-table"></i> Sample Format:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>USN</th>
+                                    <th>Student Name</th>
+                                    <th>Department</th>
+                                    <th>Semester</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1AB21CS001</td>
+                                    <td>John Doe</td>
+                                    <td>Computer Science</td>
+                                    <td>5</td>
+                                </tr>
+                                <tr>
+                                    <td>1AB21IS002</td>
+                                    <td>Jane Smith</td>
+                                    <td>Information Science</td>
+                                    <td>5</td>
+                                </tr>
+                                <tr>
+                                    <td>1AB21EC003</td>
+                                    <td>Bob Johnson</td>
+                                    <td>Electronics</td>
+                                    <td>4</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>Note:</strong> Only the USN column is required. Other columns (Name, Department, Semester) are optional and will be ignored during processing.
+                    </div>
+
+                    <h6><i class="bi bi-gear"></i> Processing Details:</h6>
+                    <ul>
+                        <li>System automatically finds the USN column</li>
+                        <li>Duplicate USNs are automatically removed</li>
+                        <li>Empty USN cells are skipped</li>
+                        <li>All USNs are converted to uppercase</li>
+                        <li>Other columns are ignored</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" onclick="downloadExcelTemplate(); bootstrap.Modal.getInstance(document.getElementById('excelHelpModal')).hide();">
+                        <i class="bi bi-download"></i> Download Template
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Past Date Warning Modal -->
     <div class="warning-modal" id="pastDateWarningModal">
         <div class="warning-modal-content">
@@ -776,9 +1047,12 @@
     <!-- Add Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Add XLSX.js library for Excel file handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // Initialize the selected candidates array
-        let selectedCandidates = [];
+        // Initialize the selected candidates array with existing additional candidates
+        let selectedCandidates = <%- additionalCandidates || '[]' %>;
+        let excelCandidates = [];
         let startDatePicker, endDatePicker;
 
         // Settings object to track current settings - initialize with exam values
@@ -849,10 +1123,322 @@
             defaultTime.setHours(defaultTime.getHours() + 1);
             return defaultTime;
         }
-        
+
+        // Excel Upload Functions
+        function downloadExcelTemplate() {
+            const wb = XLSX.utils.book_new();
+            const sampleData = [
+                ['USN', 'Student Name', 'Department', 'Semester'],
+                ['1AB21CS001', 'John Doe', 'Computer Science', '5'],
+                ['1AB21IS002', 'Jane Smith', 'Information Science', '5'],
+                ['1AB21EC003', 'Bob Johnson', 'Electronics', '4'],
+                ['', '', '', ''],
+                ['', '', '', '']
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(sampleData);
+            ws['!cols'] = [
+                { width: 15 },
+                { width: 20 },
+                { width: 20 },
+                { width: 10 }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws, "Student_List");
+            XLSX.writeFile(wb, "Student_Upload_Template.xlsx");
+        }
+
+        function triggerExcelUpload() {
+            document.getElementById('excelUploadSection').style.display = 'block';
+        }
+
+        function triggerFileUpload() {
+            document.getElementById('excelFileInput').click();
+        }
+
+        function hideExcelUpload() {
+            document.getElementById('excelUploadSection').style.display = 'none';
+        }
+
+        function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const uploadSection = document.getElementById('excelUploadSection');
+            const originalContent = uploadSection.innerHTML;
+            uploadSection.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2 text-light">Processing Excel file...</div>
+                </div>
+            `;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length === 0) {
+                        alert('The Excel file appears to be empty.');
+                        uploadSection.innerHTML = originalContent;
+                        return;
+                    }
+
+                    const headers = jsonData[0];
+                    if (!headers) {
+                        alert('No headers found in the Excel file.');
+                        uploadSection.innerHTML = originalContent;
+                        return;
+                    }
+
+                    const usnColumnIndex = headers.findIndex(header =>
+                        header && header.toString().toLowerCase().includes('usn')
+                    );
+
+                    if (usnColumnIndex === -1) {
+                        alert(`USN column not found in the Excel file.\n\nPlease ensure your Excel file has a column with "USN" in the header.\n\nAccepted header names:\n- USN\n- Student USN\n- Roll Number USN\n- Registration USN\n\nCurrent headers found: ${headers.join(', ')}`);
+                        uploadSection.innerHTML = originalContent;
+                        return;
+                    }
+
+                    const usns = [];
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const usn = jsonData[i][usnColumnIndex];
+                        if (usn && usn.toString().trim()) {
+                            usns.push(usn.toString().trim().toUpperCase());
+                        }
+                    }
+
+                    if (usns.length === 0) {
+                        alert('No valid USNs found in the Excel file.');
+                        uploadSection.innerHTML = originalContent;
+                        return;
+                    }
+
+                    const uniqueUSNs = [...new Set(usns)];
+                    processExcelUSNs(uniqueUSNs, uploadSection);
+
+                } catch (error) {
+                    alert('Error reading Excel file: ' + error.message);
+                    console.error('Excel parsing error:', error);
+                    uploadSection.innerHTML = originalContent;
+                }
+            };
+
+            reader.onerror = function() {
+                alert('Error reading the file. Please try again.');
+                uploadSection.innerHTML = originalContent;
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processExcelUSNs(usns, uploadSection) {
+            uploadSection.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <div class="mt-2 text-light">Validating USNs against database...</div>
+                </div>
+            `;
+
+            fetch('/admin/validate_excel_usns', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ usns: usns })
+            })
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return response.text().then(text => {
+                        console.error('Received non-JSON response:', text);
+                        throw new Error('Server returned HTML instead of JSON. Check if the route exists.');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    excelCandidates = data.validatedStudents;
+                    updateExcelCandidatesDisplay();
+                    uploadSection.style.display = 'none';
+                    showExcelValidationResults(data);
+                } else {
+                    alert('Error validating USNs: ' + (data.message || 'Unknown error'));
+                    resetUploadSection(uploadSection);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error processing Excel file: ' + error.message);
+                resetUploadSection(uploadSection);
+            });
+        }
+
+        function updateExcelCandidatesDisplay() {
+            const section = document.getElementById('excelCandidatesSection');
+            const list = document.getElementById('excelCandidatesList');
+            const count = document.getElementById('excelCandidatesCount');
+
+            if (excelCandidates.length > 0) {
+                count.textContent = excelCandidates.length;
+
+                let html = '';
+                excelCandidates.forEach(candidate => {
+                    const statusIcon = candidate.foundInDatabase ?
+                        '<i class="bi bi-check-circle-fill text-success" title="Found in database"></i>' :
+                        '<i class="bi bi-exclamation-triangle-fill text-warning" title="Not found in database"></i>';
+
+                    const studentInfo = candidate.foundInDatabase ?
+                        `${candidate.name} (${candidate.department})` :
+                        'Not registered';
+
+                    html += `
+                        <div class="excel-candidate-item">
+                            <div>
+                                <span class="excel-candidate-usn">${candidate.usn}</span>
+                                <br>
+                                <small class="text-muted">${studentInfo}</small>
+                            </div>
+                            <div>${statusIcon}</div>
+                        </div>
+                    `;
+                });
+
+                list.innerHTML = html;
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+            }
+        }
+
+        function clearExcelCandidates() {
+            excelCandidates = [];
+            document.getElementById('excelCandidatesSection').style.display = 'none';
+            document.getElementById('excelUploadSection').style.display = 'none';
+            document.getElementById('excelFileInput').value = '';
+        }
+
+        function showExcelValidationResults(data) {
+            const {
+                totalUSNs,
+                foundInDatabase,
+                notFoundInDatabase,
+                foundStudents,
+                notFoundUSNs
+            } = data;
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-info alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <h6><i class="bi bi-file-earmark-excel"></i> Excel Processing Complete</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Summary:</strong><br>
+                        Total USNs processed: <span class="badge bg-primary">${totalUSNs}</span><br>
+                        Found in database: <span class="badge bg-success">${foundInDatabase}</span><br>
+                        Not found in database: <span class="badge bg-warning">${notFoundInDatabase}</span>
+                    </div>
+                    ${notFoundInDatabase > 0 ? `
+                    <div class="col-md-6">
+                        <strong>USNs not found:</strong><br>
+                        <small class="text-muted">${notFoundUSNs.slice(0, 5).join(', ')}${notFoundUSNs.length > 5 ? ` and ${notFoundUSNs.length - 5} more...` : ''}</small>
+                    </div>
+                    ` : ''}
+                </div>
+                <hr>
+                <small><strong>Note:</strong> Students found in database will have complete details. Students not found will be added with USN only.</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            const uploadSection = document.getElementById('excelUploadSection');
+            uploadSection.parentNode.insertBefore(alertDiv, uploadSection);
+
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 10000);
+        }
+
+        function resetUploadSection(uploadSection) {
+            uploadSection.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0 text-light">Upload Excel File</h6>
+                    <button type="button" class="btn-close btn-close-white" onclick="hideExcelUpload()" aria-label="Close"></button>
+                </div>
+                <div onclick="triggerFileUpload()" style="cursor: pointer;">
+                    <div class="upload-icon">
+                        <i class="bi bi-cloud-upload"></i>
+                    </div>
+                    <div class="upload-text">Click to upload Excel file or drag and drop</div>
+                    <div class="upload-subtext">
+                        Supported formats: .xlsx, .xls<br>
+                        <small><strong>Required:</strong> Excel file must contain a column with "USN" in the header</small>
+                    </div>
+                </div>
+                <input type="file" id="excelFileInput" class="excel-file-input" accept=".xlsx,.xls" onchange="handleExcelUpload(event)">
+            `;
+        }
+
+        function setupDragAndDrop() {
+            const uploadSection = document.getElementById('excelUploadSection');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadSection.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadSection.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadSection.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight(e) {
+                uploadSection.classList.add('drag-over');
+            }
+
+            function unhighlight(e) {
+                uploadSection.classList.remove('drag-over');
+            }
+
+            uploadSection.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                        document.getElementById('excelFileInput').files = files;
+                        handleExcelUpload({ target: { files: [file] } });
+                    } else {
+                        alert('Please upload only Excel files (.xlsx or .xls)');
+                    }
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             toggleQuestionFields();
             updateSettingsInputs(); // Initialize settings inputs
+            setupDragAndDrop(); // Setup drag and drop for Excel upload
 
             // Get initial date values
             const startDateInput = document.getElementById('scheduledAt');
@@ -969,10 +1555,13 @@
             document.getElementById('createExamForm').addEventListener('submit', function(e) {
                 // Prepare selected candidates for form submission
                 document.getElementById('selectedCandidatesInput').value = JSON.stringify(selectedCandidates);
-                
+
+                // Prepare excel candidates for form submission
+                document.getElementById('excelCandidatesInput').value = JSON.stringify(excelCandidates);
+
                 // Update settings inputs before submission
                 updateSettingsInputs();
-                
+
                 // Validate form
                 if (!validateForm()) {
                     e.preventDefault();
@@ -996,6 +1585,11 @@
 
             // Update total questions for mixed type exams
             updateTotalQuestions();
+
+            // Display existing additional candidates if any
+            if (selectedCandidates.length > 0) {
+                updateSelectedCandidatesDisplay();
+            }
         });
         
         // Function to update the duration display

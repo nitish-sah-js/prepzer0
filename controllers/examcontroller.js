@@ -811,12 +811,27 @@ exports.getEditExam = async (req, res) => {
                     );
                 }
 
+                // Fetch existing additional candidates (manually added)
+                const existingCandidates = await ExamCandidate.find({
+                    exam: req.params.examId,
+                    isAdditional: true,
+                    source: 'manual'
+                }).populate('user', 'USN name Department');
+
+                // Format candidates for the frontend
+                const additionalCandidates = existingCandidates.map(candidate => ({
+                    usn: candidate.user.USN,
+                    name: candidate.user.name,
+                    department: candidate.user.Department
+                }));
+
                 res.render("edit_exam", {
                     pic: Userprofile.imageurl,
                     logged_in: "true",
                     exam,
                     departments: availableDepartments,
-                    user: Userprofile
+                    user: Userprofile,
+                    additionalCandidates: JSON.stringify(additionalCandidates)
                 });
             } catch (error) {
                 console.error(error);
@@ -832,16 +847,45 @@ exports.getEditExam = async (req, res) => {
 
 exports.postEditExam = async (req, res) => {
     try {
-        let { name, departments, semester, questionType, numMCQs, numCoding, numTotalQuestions, scheduledAt, scheduleTill, duration } = req.body;
-        
+        let { name, departments, semester, questionType, numMCQs, numCoding, numTotalQuestions, scheduledAt, scheduleTill, duration, additionalCandidates, excelCandidates, settings } = req.body;
+
         if (scheduledAt) {
             scheduledAt = moment.tz(scheduledAt, "Asia/Kolkata").toDate();
         }
-        
+
         if (scheduleTill) {
             scheduleTill = moment.tz(scheduleTill, "Asia/Kolkata").toDate();
         }
-        
+
+        // Parse exam settings
+        const examSettings = {
+            camera: settings?.camera === 'true',
+            phone: settings?.phone === 'true',
+            showResults: settings?.showResults === 'true'
+        };
+
+        // Parse additional candidates if provided
+        let parsedAdditionalCandidates = [];
+        if (additionalCandidates) {
+            try {
+                parsedAdditionalCandidates = JSON.parse(additionalCandidates);
+                console.log(`📝 Parsed ${parsedAdditionalCandidates.length} manual additional candidates for update`);
+            } catch (error) {
+                console.error("Error parsing additional candidates:", error);
+            }
+        }
+
+        // Parse Excel candidates if provided
+        let parsedExcelCandidates = [];
+        if (excelCandidates) {
+            try {
+                parsedExcelCandidates = JSON.parse(excelCandidates);
+                console.log(`📊 Parsed ${parsedExcelCandidates.length} Excel candidates for update`);
+            } catch (error) {
+                console.error("Error parsing Excel candidates:", error);
+            }
+        }
+
         const updatedExam = await Exam.findByIdAndUpdate(
             req.params.examId,
             {
@@ -854,12 +898,39 @@ exports.postEditExam = async (req, res) => {
                 numTotalQuestions: questionType === "mcq&coding" ? (parseInt(numMCQs) || 0) + (parseInt(numCoding) || 0) : 0,
                 scheduledAt,
                 scheduleTill,
-                duration: parseInt(duration) || 60
+                duration: parseInt(duration) || 60,
+                settings: examSettings,
+                additionalCandidatesPresent: parsedAdditionalCandidates.length > 0 || parsedExcelCandidates.length > 0
             },
             { new: true }
         );
 
         if (!updatedExam) return res.status(404).send("Exam not found.");
+
+        // Process manual additional candidates if any are provided
+        if (parsedAdditionalCandidates && parsedAdditionalCandidates.length > 0) {
+            // Remove existing manual additional candidates for this exam first (to avoid duplicates)
+            await ExamCandidate.deleteMany({
+                exam: req.params.examId,
+                isAdditional: true,
+                source: 'manual'
+            });
+
+            // Add new manual additional candidates
+            await this.saveAdditionalCandidates(updatedExam._id, parsedAdditionalCandidates);
+        }
+
+        // Process Excel candidates if any are provided
+        if (parsedExcelCandidates && parsedExcelCandidates.length > 0) {
+            // Remove existing Excel candidates for this exam first (to avoid duplicates)
+            await ExamCandidate.deleteMany({
+                exam: req.params.examId,
+                source: 'excel'
+            });
+
+            // Save Excel candidates
+            await this.saveExcelCandidates(updatedExam._id, parsedExcelCandidates);
+        }
 
         // Update the reminder schedule
         if (updatedExam.testStatus !== 'draft') {
