@@ -506,16 +506,43 @@ exports.viewAssessmentReport = async(req,res) => {
 
 
 
-// Keep the deleteSubmission function as is
+// Delete submission with proper authorization
 exports.deleteSubmission = async (req, res) => {
   try {
+    // SECURITY: Verify user is authenticated (middleware handles this, but double-check)
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // SECURITY: Verify user has admin or teacher role
+    if (req.user.usertype !== 'admin' && req.user.usertype !== 'teacher') {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: Admin or Teacher access required'
+      });
+    }
+
     const { userId, examId, submissionId } = req.body;
-    console.log(req.body)
-    
+    console.log('Delete submission request:', { userId, examId, submissionId, requestedBy: req.user.email });
+
+    // Validate required parameters
     if (!userId || !examId || !submissionId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required parameters: userId, examId, or submissionId' 
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required parameters: userId, examId, or submissionId'
+      });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(submissionId) ||
+        !mongoose.Types.ObjectId.isValid(examId) ||
+        !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ID format'
       });
     }
     

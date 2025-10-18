@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router()
-const path = require('path');
-const multer = require('multer');
 
 const admincontroller =  require('./../controllers/admincontroller')
 const authenticatecontroller =  require('./../controllers/authenticatecontroller')
@@ -11,6 +9,18 @@ const mcqquestions = require("../controllers/allmcqcontroller");
 const reportController = require("../controllers/reportController");
 const databaseController = require("../controllers/dbQuestionsController");
 const departmentController = require("../controllers/departmentcontroller");
+const { requireAdmin, requireAdminAPI } = require('../middleware/auth');
+
+// Apply authentication middleware to ALL admin routes
+// Public routes (login/signup) are defined separately below
+router.use((req, res, next) => {
+    // Skip auth for login, signup, and verification routes
+    if (req.path === '/login' || req.path === '/signup' || req.path.startsWith('/verify/')) {
+        return next();
+    }
+    // All other routes require admin/teacher access
+    return requireAdmin(req, res, next);
+});
 
 router.route("/").get(admincontroller.getcontrol).post(admincontroller.postcontrol)
 
@@ -44,7 +54,7 @@ router.route("/profile/students").get(admincontroller.allStudents)
 router.route("/students/:studentId/exams").get(admincontroller.getStudentExams)
 
 router.route("/exam/candidates/:examId").get(admincontroller.examCandidates)
-router.post('/api/submission/delete', reportController.deleteSubmission);
+router.post('/api/submission/delete', requireAdminAPI, reportController.deleteSubmission);
 router.route("/exam/submission/:submissionId").get(reportController.viewAssessmentReport)
 
 router.route("/search_student").get(examController.searchStudent)
@@ -56,36 +66,18 @@ router.route('/validate_excel_usns').post(examController.validateExcelUSNs);
 
 
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    const uploadDir = path.join(__dirname, '../uploads');
-    const fs = require('fs');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function(req, file, cb) {
-    cb(null, 'mcq-' + Date.now() + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  fileFilter: function(req, file, cb) {
-    if (path.extname(file.originalname) !== '.csv') {
-      return cb(new Error('Only CSV files are allowed'));
-    }
-    cb(null, true);
-  }
-});
+// Secure file upload configuration
+const { csvUpload, handleUploadError } = require('../config/upload');
 
 // Routes
 router.route("/exam/:examId/csv").get(mcqquestions.csvPage)
 
-// router.route("/upload-mcq-csv").post(upload.single('csvFile'), mcqquestions.uploadMCQCSV)
-router.route("/exam/:examId/upload-mcq-csv").post(upload.single('csvFile'), mcqquestions.uploadMCQCSV)
+// Use secure CSV upload with error handling
+router.route("/exam/:examId/upload-mcq-csv").post(
+    csvUpload.single('csvFile'),
+    handleUploadError,
+    mcqquestions.uploadMCQCSV
+)
 
 router.route("/exam/:examId/report").get(examController.exportExamReport);
 

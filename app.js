@@ -245,8 +245,10 @@ app.get("/api/check-session", async (req, res) => {
   }
 })
 
-const upload = multer({ storage: multer.memoryStorage() })
+// Import secure file upload configuration
+const { imageUpload, handleUploadError } = require('./config/upload')
 const Integrity = require("./models/Integrity")
+
 app.post("/update-integrity", async (req, res) => {
   console.log(
     "came to the page intrigrity upadte:    ---------------------------"
@@ -288,29 +290,100 @@ app.post("/update-integrity", async (req, res) => {
   }
 })
 
-app.post("/save-image", upload.single("image"), async (req, res) => {
+app.post("/save-image", imageUpload.single("image"), handleUploadError, async (req, res) => {
   try {
-    const { userId, examId } = req.body
+    // Validate file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image file uploaded"
+      })
+    }
 
+    // Validate required fields
+    const { userId, examId } = req.body
+    if (!userId || !examId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing userId or examId"
+      })
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(examId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId or examId format"
+      })
+    }
+
+    // Verify file type using magic bytes (file-type package would be better, but using buffer check)
+    const fileBuffer = req.file.buffer
+    const fileSignature = fileBuffer.slice(0, 4).toString('hex')
+
+    // Check for common image signatures
+    const validSignatures = {
+      '89504e47': 'png',  // PNG
+      'ffd8ffe0': 'jpg',  // JPEG
+      'ffd8ffe1': 'jpg',  // JPEG
+      'ffd8ffe2': 'jpg',  // JPEG
+      '47494638': 'gif',  // GIF
+      '52494646': 'webp'  // WEBP (RIFF)
+    }
+
+    const fileType = validSignatures[fileSignature]
+    if (!fileType) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid image file. Only JPEG, PNG, GIF, and WebP images are allowed."
+      })
+    }
+
+    // Get user to retrieve USN
     const user = await User.findById(userId)
-    console.log(user)
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      })
+    }
+
     const usn = user.USN
-    const fileName = `captured-${Date.now()}.jpg`
+    // Generate secure random filename
+    const crypto = require('crypto')
+    const randomName = crypto.randomBytes(16).toString('hex')
+    const fileName = `captured-${randomName}.${fileType}`
     const s3Key = `integrity/${usn}/${examId}/${fileName}`
+
+    // Content type based on verified file type
+    const contentTypes = {
+      'jpg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp'
+    }
 
     const uploadParams = {
       Bucket: BUCKET_NAME,
       Key: s3Key,
       Body: req.file.buffer,
-      ContentType: "image/jpeg",
+      ContentType: contentTypes[fileType],
+      ServerSideEncryption: 'AES256'  // Enable server-side encryption
     }
 
     await s3Client.send(new PutObjectCommand(uploadParams))
 
-    res.json({ message: "Image uploaded to S3!", path: s3Key })
+    res.json({
+      success: true,
+      message: "Image uploaded to S3!",
+      path: s3Key
+    })
   } catch (err) {
     console.error("Error uploading image to S3:", err)
-    res.status(500).send("Server error")
+    res.status(500).json({
+      success: false,
+      message: "Server error during image upload"
+    })
   }
 })
 

@@ -1,0 +1,13 @@
+# Python dependencies for automated testing
+
+# Selenium for browser automation
+selenium>=4.15.0
+
+# MongoDB driver
+pymongo>=4.6.0
+
+# Fake data generation
+faker>=20.0.0
+
+# WebDriver manager (optional - auto-downloads ChromeDriver)
+webdriver-manager>=4.0.1

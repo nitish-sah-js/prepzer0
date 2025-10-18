@@ -44,61 +44,65 @@ exports.logingetcontrol = async(req,res)=>{
 }
 
 
-exports.loginpostcontrol = async(req,res)=>{
-
+exports.loginpostcontrol = async (req, res, next) => {
     try {
-        if( req.body.role == "teacher" ){
-            const user =new User({
-                email : req.body.email,
-                password : req.body.password,
-                usertype : req.body.role,
-            })
-           await req.login(user,function(err){
-                if(err){
-                    console.log(err)
-                    res.render("invalid email or password ")
-                }
-                else{
-                    passport.authenticate('local')(req,res,function(){
-                        console.log("sessions loged  in sucessfully")
-                        res.redirect('/admin')
-                    })
-                }
-            })       
-
-        }
-                else if( req.body.role == "admin" ){
-            const user =new User({
-                email : req.body.email,
-                password : req.body.password,
-                usertype : req.body.role,
-            })
-           await req.login(user,function(err){
-                if(err){
-                    console.log(err)
-                    res.render("invalid email or password ")
-                }
-                else{
-                    passport.authenticate('local')(req,res,function(){
-                        console.log("sessions loged  in sucessfully")
-                        res.redirect('/admin')
-                    })
-                }
-            })       
-
-        }
-        else{
-            res.send("invalid role")
+        // Validate input
+        if (!req.body.email || !req.body.password || !req.body.role) {
+            return res.render('adminlogin', {
+                errormsg: "All fields are required"
+            });
         }
 
-    }catch(error){
-        console.log(error)
-        res.redirect('/admin')
+        // Validate role
+        if (req.body.role !== 'teacher' && req.body.role !== 'admin') {
+            return res.render('adminlogin', {
+                errormsg: "Invalid role selected"
+            });
+        }
+
+        // Use passport.authenticate properly (same pattern as student login)
+        passport.authenticate('local', (err, user, info) => {
+            if (err) {
+                console.error('Authentication error:', err);
+                return res.status(500).render('adminlogin', {
+                    errormsg: "An error occurred during login. Please try again."
+                });
+            }
+
+            if (!user) {
+                console.log('Authentication failed for:', req.body.email, 'Reason:', info?.message);
+                return res.render('adminlogin', {
+                    errormsg: info?.message || "Invalid email or password"
+                });
+            }
+
+            // Verify user type matches requested role
+            if (user.usertype !== req.body.role) {
+                return res.render('adminlogin', {
+                    errormsg: "Invalid role for this account"
+                });
+            }
+
+            // Successful authentication, now log in the user
+            req.login(user, (loginErr) => {
+                if (loginErr) {
+                    console.error('Login error after authentication:', loginErr);
+                    return res.status(500).render('adminlogin', {
+                        errormsg: "Error during login. Please try again."
+                    });
+                }
+
+                console.log('Admin/Teacher login successful:', user.email);
+                return res.redirect('/admin');
+            });
+        })(req, res, next);
+
+    } catch (error) {
+        console.error('Error in loginpostcontrol:', error);
+        return res.status(500).render('adminlogin', {
+            errormsg: "An unexpected error occurred. Please try again."
+        });
     }
-      
-
-  
-    
 }
 
 exports.signupgetcontrol = async(req,res)=>{
@@ -599,7 +603,7 @@ exports.evaluateAllSubmissions = async (req, res) => {
 
         // Create a set of user IDs that already have evaluations
         const evaluatedUserIds = new Set(
-            existingEvaluations.map(eval => eval.userId.toString())
+            existingEvaluations.map(evaluation => evaluation.userId.toString())
         );
 
         console.log(`Found ${evaluatedUserIds.size} students already evaluated`);
@@ -1347,9 +1351,9 @@ async function handleCandidatesDataRequest(req, res, examId) {
             examId: examId,
             userId: { $in: submissionUserIds }
         }).select('userId totalScore maxPossibleScore percentage');
-        
-        existingEvaluations.forEach(eval => {
-            evaluationMap.set(eval.userId.toString(), eval);
+
+        existingEvaluations.forEach(evaluation => {
+            evaluationMap.set(evaluation.userId.toString(), evaluation);
         });
     }
     
