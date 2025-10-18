@@ -9,12 +9,15 @@ exports.getcontrol = async (req, res) => {
   if (req.isAuthenticated()) {
     try {
       const student = await User.findById(req.user._id)
-      if (student.usertype != "student") {
-        // Redirect teachers and admins to /admin
-        res.redirect("/admin")
-      } else {
-        if (!student)
-          return res.status(404).json({ error: "Student not found" })
+
+      // Extra safety check - redirect non-students to admin
+      // (The requireStudent middleware should already prevent this, but this is a UX enhancement)
+      if (student && student.usertype !== "student") {
+        return res.redirect("/admin")
+      }
+
+      if (student) {
+        // Student exists, proceed with rendering dashboard
 
         const currentTime = new Date()
 

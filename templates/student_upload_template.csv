@@ -1,0 +1,6 @@
+email,usn,department,semester,fname,lname,phone,imageurl
+student1@example.com,1BY22CS001,cs,1,John,Doe,9876543210,
+student2@example.com,1BY22CS002,cs,1,Jane,Smith,9876543211,https://example.com/profile.jpg
+student3@example.com,1BY22IS003,is,2,Bob,Johnson,9876543212,
+student4@example.com,1BY22EC004,ec,3,Alice,Williams,9876543213,
+student5@example.com,1BY22AI005,ai,1,Charlie,Brown,9876543214,

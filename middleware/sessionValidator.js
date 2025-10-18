@@ -65,13 +65,11 @@ const validateSingleSession = async (req, res, next) => {
             return next(regenerateErr)
           }
 
-          // Set flash message if available
-          if (req.flash) {
-            req.flash(
-              "error",
-              "You have been logged out because you logged in from another device during an exam."
-            )
-          }
+          // Set flash message
+          req.flash(
+            "error",
+            "You have been logged out because you logged in from another device during an exam."
+          )
 
           console.log('Session forced logout complete')
           return res.redirect("/authenticate/login")

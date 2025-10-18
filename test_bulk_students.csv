@@ -1,0 +1,6 @@
+email,usn,department,semester,fname,lname,phone
+bulktest1@test.com,1BY22CS101,cs,1,Test,Student1,9876543210
+bulktest2@test.com,1BY22CS102,cs,1,Test,Student2,9876543211
+bulktest3@test.com,1BY22IS103,is,2,Test,Student3,9876543212
+bulktest4@test.com,1BY22EC104,ec,3,Test,Student4,9876543213
+bulktest5@test.com,1BY22AI105,ai,1,Test,Student5,9876543214

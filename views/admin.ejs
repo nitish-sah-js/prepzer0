@@ -571,9 +571,14 @@ html >
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">All Exams</h2>
-                <a href="/admin/create_exam" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Create New Exam
-                </a>
+                <div style="display: flex; gap: 0.75rem;">
+                    <a href="/admin/create_exam" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Exam
+                    </a>
+                    <a href="/admin/addbulckstudent" class="btn" style="background-color: var(--success); color: white;">
+                        <i class="fas fa-user-plus"></i> Add Bulk Students
+                    </a>
+                </div>
             </div>
             <div class="table-container">
                 <table>

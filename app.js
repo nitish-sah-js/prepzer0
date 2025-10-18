@@ -92,6 +92,7 @@ app.use(
 app.use(flash())
 app.use((req, res, next) => {
   res.locals.successMessage = req.flash("success")
+  res.locals.errorMessage = req.flash("error")
   next()
 })
 //using passport middlewares
@@ -168,8 +169,14 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(async function (id, done) {
   try {
     const user = await User.findById(id)
+    if (!user) {
+      // User not found - session is invalid
+      console.log('Passport deserializeUser: User not found for ID:', id)
+      return done(null, false)
+    }
     done(null, user)
   } catch (err) {
+    console.error('Passport deserializeUser error:', err)
     done(err, null)
   }
 })

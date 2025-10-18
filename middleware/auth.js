@@ -21,7 +21,7 @@ function requireAuth(req, res, next) {
  * Returns 403 if user doesn't have required role
  */
 function requireAdmin(req, res, next) {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
         req.session.returnTo = req.originalUrl;
         return res.redirect('/admin/login');
     }
@@ -41,7 +41,7 @@ function requireAdmin(req, res, next) {
  * Returns 403 if user is not a student
  */
 function requireStudent(req, res, next) {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
         req.session.returnTo = req.originalUrl;
         return res.redirect('/authenticate/login');
     }
@@ -61,7 +61,7 @@ function requireStudent(req, res, next) {
  * Returns 403 if user doesn't have admin_access
  */
 function requireSuperAdmin(req, res, next) {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
         req.session.returnTo = req.originalUrl;
         return res.redirect('/admin/login');
     }
@@ -80,7 +80,7 @@ function requireSuperAdmin(req, res, next) {
  * API version - returns JSON instead of rendering
  */
 function requireAuthAPI(req, res, next) {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({
             success: false,
             message: 'Authentication required'
@@ -90,7 +90,7 @@ function requireAuthAPI(req, res, next) {
 }
 
 function requireAdminAPI(req, res, next) {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({
             success: false,
             message: 'Authentication required'

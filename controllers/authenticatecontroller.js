@@ -88,19 +88,26 @@ exports.logincontrol = async (req, res, next) => {
                         console.log('Old session ID:', oldSessionId);
                         console.log('New session ID:', req.sessionID);
 
-                        // If there's an old session, destroy it from MongoDB (AWAIT to ensure it completes)
+                        // If there's an old session, try to destroy it from MongoDB
+                        // (it might already be expired, which is fine)
                         if (oldSessionId && oldSessionId !== req.sessionID) {
-                            await new Promise((resolve, reject) => {
-                                sessionStore.destroy(oldSessionId, (destroyErr) => {
-                                    if (destroyErr) {
-                                        console.error('Error destroying old session:', destroyErr);
-                                        reject(destroyErr);
-                                    } else {
-                                        console.log('Old session destroyed successfully for student:', user.email);
-                                        resolve();
-                                    }
+                            try {
+                                await new Promise((resolve, reject) => {
+                                    sessionStore.destroy(oldSessionId, (destroyErr) => {
+                                        if (destroyErr) {
+                                            // Session might already be expired/deleted - log but don't fail
+                                            console.log('Old session destroy attempted (may already be expired):', destroyErr.message);
+                                            resolve(); // Continue anyway
+                                        } else {
+                                            console.log('Old session destroyed successfully for student:', user.email);
+                                            resolve();
+                                        }
+                                    });
                                 });
-                            });
+                            } catch (destroyError) {
+                                // Non-critical error - session might already be expired
+                                console.log('Session destroy error (non-critical):', destroyError.message);
+                            }
                         }
 
                         // Update user document with new session ID

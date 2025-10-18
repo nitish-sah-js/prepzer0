@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bulk Student Upload - Admin</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #4f46e5;
+        --primary-hover: #4338ca;
+        --dark-bg: #111827;
+        --card-bg: #1f2937;
+        --light-text: #f9fafb;
+        --secondary-text: #9ca3af;
+        --border-color: #374151;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: var(--dark-bg);
+        color: var(--light-text);
+        min-height: 100vh;
+        font-family: "Inter", "Segoe UI", Arial, sans-serif;
+      }
+
+      .header {
+        background-color: var(--card-bg);
+        padding: 1.5rem 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+      }
+
+      .header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        background: linear-gradient(to right, var(--primary), #8b5cf6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+      }
+
+      .header .breadcrumb {
+        background: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .header .breadcrumb-item a {
+        color: var(--secondary-text);
+        text-decoration: none;
+      }
+
+      .header .breadcrumb-item a:hover {
+        color: var(--primary);
+      }
+
+      .header .breadcrumb-item.active {
+        color: var(--light-text);
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--light-text);
+      }
+
+      .info-box {
+        background-color: rgba(79, 70, 229, 0.1);
+        border: 1px solid var(--primary);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .info-box h3 {
+        color: var(--primary);
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+      }
+
+      .info-box ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: var(--secondary-text);
+      }
+
+      .info-box ul li {
+        margin-bottom: 0.5rem;
+      }
+
+      .info-box code {
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        color: var(--light-text);
+      }
+
+      .form-label {
+        color: var(--light-text);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+
+      .form-control {
+        background-color: var(--dark-bg);
+        border: 1px solid var(--border-color);
+        color: var(--light-text);
+        padding: 0.75rem;
+        border-radius: 8px;
+      }
+
+      .form-control:focus {
+        background-color: var(--dark-bg);
+        border-color: var(--primary);
+        color: var(--light-text);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+
+      .form-control::file-selector-button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-right: 1rem;
+      }
+
+      .form-control::file-selector-button:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        border: none;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .btn-outline-light {
+        border: 1px solid var(--border-color);
+        color: var(--light-text);
+      }
+
+      .btn-outline-light:hover {
+        background-color: var(--border-color);
+        color: var(--light-text);
+      }
+
+      .btn-success {
+        background-color: var(--success);
+        border: none;
+      }
+
+      .btn-success:hover {
+        background-color: #059669;
+      }
+
+      .alert {
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        border: none;
+      }
+
+      .alert-danger {
+        background-color: rgba(239, 68, 68, 0.1);
+        border: 1px solid var(--danger);
+        color: #fca5a5;
+      }
+
+      .alert-success {
+        background-color: rgba(16, 185, 129, 0.1);
+        border: 1px solid var(--success);
+        color: #6ee7b7;
+      }
+
+      .error-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 0.75rem;
+      }
+
+      .error-list ul {
+        margin: 0;
+        padding-left: 1.5rem;
+      }
+
+      .error-list li {
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .stat-box {
+        background-color: var(--dark-bg);
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .stat-box .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .stat-box .stat-label {
+        font-size: 0.875rem;
+        color: var(--secondary-text);
+        margin-top: 0.25rem;
+      }
+
+      .sample-table {
+        width: 100%;
+        margin-top: 1rem;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+
+      .sample-table th {
+        background-color: var(--dark-bg);
+        padding: 0.5rem;
+        text-align: left;
+        border: 1px solid var(--border-color);
+      }
+
+      .sample-table td {
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        color: var(--secondary-text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1><i class="fas fa-users-cog"></i> Bulk Student Upload</h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="/admin">Admin Dashboard</a></li>
+          <li class="breadcrumb-item active" aria-current="page">
+            Bulk Student Upload
+          </li>
+        </ol>
+      </nav>
+    </div>
+
+    <div class="container">
+      <!-- Success Message -->
+      <% if (successMsg) { %>
+      <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> <%= successMsg %> <% if (details) {
+        %>
+        <div class="stats-container">
+          <div class="stat-box">
+            <div class="stat-value"><%= details.total %></div>
+            <div class="stat-label">Total Rows</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" style="color: var(--success)">
+              <%= details.success %>
+            </div>
+            <div class="stat-label">Created</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" style="color: var(--warning)">
+              <%= details.skipped %>
+            </div>
+            <div class="stat-label">Skipped</div>
+          </div>
+        </div>
+        <% } %>
+      </div>
+      <% } %>
+
+      <!-- Error Messages -->
+      <% if (errorMsg && Array.isArray(errorMsg)) { %>
+      <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Errors encountered:</strong>
+        <div class="error-list">
+          <ul>
+            <% errorMsg.forEach(function(error) { %>
+            <li><%= error %></li>
+            <% }); %>
+          </ul>
+        </div>
+      </div>
+      <% } else if (errorMsg) { %>
+      <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i> <%= errorMsg %>
+      </div>
+      <% } %>
+
+      <!-- Instructions Card -->
+      <div class="card">
+        <h2 class="card-title">
+          <i class="fas fa-info-circle"></i> Instructions
+        </h2>
+
+        <div class="info-box">
+          <h3>CSV Format Requirements</h3>
+          <ul>
+            <li>
+              <strong>Required Columns:</strong> <code>email</code>,
+              <code>usn</code>, <code>department</code>, <code>semester</code>
+            </li>
+            <li>
+              <strong>Optional Columns:</strong> <code>fname</code>,
+              <code>lname</code>, <code>phone</code>, <code>imageurl</code>
+            </li>
+            <li>CSV must have a header row with column names</li>
+            <li>
+              Department codes: cs, is, ec, et, ai, cv, ee, ad (lowercase)
+            </li>
+            <li>Semester must be between 1 and 8</li>
+            <li>USN format: <code>1BY22CS001</code></li>
+          </ul>
+        </div>
+
+        <div class="mb-3">
+          <a href="/admin/download-student-template" class="btn btn-success">
+            <i class="fas fa-download"></i> Download Sample CSV Template
+          </a>
+        </div>
+
+        <details style="margin-top: 1rem">
+          <summary
+            style="cursor: pointer; color: var(--primary); font-weight: 600"
+          >
+            <i class="fas fa-chevron-down"></i> View Sample CSV Format
+          </summary>
+          <table class="sample-table">
+            <thead>
+              <tr>
+                <th>email</th>
+                <th>usn</th>
+                <th>department</th>
+                <th>semester</th>
+                <th>fname</th>
+                <th>lname</th>
+                <th>phone</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>student1@example.com</td>
+                <td>1BY22CS001</td>
+                <td>cs</td>
+                <td>1</td>
+                <td>John</td>
+                <td>Doe</td>
+                <td>9876543210</td>
+              </tr>
+              <tr>
+                <td>student2@example.com</td>
+                <td>1BY22CS002</td>
+                <td>cs</td>
+                <td>1</td>
+                <td>Jane</td>
+                <td>Smith</td>
+                <td>9876543211</td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
+      </div>
+
+      <!-- Upload Form Card -->
+      <div class="card">
+        <h2 class="card-title">
+          <i class="fas fa-upload"></i> Upload Student Data
+        </h2>
+
+        <form
+          action="/admin/addbulckstudent"
+          method="POST"
+          enctype="multipart/form-data"
+        >
+          <div class="mb-4">
+            <label for="csvFile" class="form-label">
+              <i class="fas fa-file-csv"></i> Select CSV File *
+            </label>
+            <input
+              type="file"
+              class="form-control"
+              id="csvFile"
+              name="csvFile"
+              accept=".csv"
+              required
+            />
+            <small class="text-muted">Maximum file size: 5MB</small>
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label">
+              <i class="fas fa-key"></i> Default Password for All Students *
+            </label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              placeholder="Enter a common password for all students"
+              minlength="6"
+              required
+            />
+            <small class="text-muted"
+              >Minimum 6 characters. All students will use this password to
+              login.</small
+            >
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-upload"></i> Upload and Create Accounts
+            </button>
+            <a href="/admin" class="btn btn-outline-light">
+              <i class="fas fa-times"></i> Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <!-- Notes Card -->
+      <div class="card">
+        <h2 class="card-title">
+          <i class="fas fa-lightbulb"></i> Important Notes
+        </h2>
+        <ul style="color: var(--secondary-text); line-height: 1.8">
+          <li>
+            All students created via bulk upload will be
+            <strong>automatically approved</strong> (userallowed = true)
+          </li>
+          <li>
+            Email verification will be <strong>skipped</strong> for bulk
+            uploaded students
+          </li>
+          <li>
+            Students can login immediately using their email and the password
+            you set
+          </li>
+          <li>
+            Duplicate emails or USNs will be skipped with an error message
+          </li>
+          <li>The system will extract the year from the USN automatically</li>
+          <li>Process will continue even if some rows have errors</li>
+        </ul>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
