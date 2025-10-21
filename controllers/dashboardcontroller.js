@@ -142,6 +142,18 @@ exports.getStartExam = async (req, res) => {
     if (currentTime > exam.scheduleTill) {
       return res.status(403).send("This exam is no longer available.")
     }
+
+    // Mark student as 'started' in ExamCandidate when they begin the exam
+    const student = await User.findById(req.user._id)
+    if (student && student.USN) {
+      await ExamCandidate.findOneAndUpdate(
+        { exam: examId, usn: student.USN },
+        {
+          $set: { attendanceStatus: 'started' }
+        }
+      )
+    }
+
     console.log()
     if (exam.questionType == "coding") {
       res.render("test3", { user: req.user, exam })
@@ -205,6 +217,15 @@ exports.postStartExam = async (req, res) => {
 
     // Save the submission
     await newSubmission.save()
+
+    // Update ExamCandidate attendance status to 'submitted'
+    const student = await User.findById(studentId)
+    if (student && student.USN) {
+      await ExamCandidate.findOneAndUpdate(
+        { exam: examId, usn: student.USN },
+        { attendanceStatus: 'submitted' }
+      )
+    }
 
     // Return success response
     return res.status(200).json({

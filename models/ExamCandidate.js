@@ -18,6 +18,18 @@ const examCandidateSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  attendanceStatus: {
+    type: String,
+    enum: ['registered', 'started', 'submitted', 'absent'],
+    default: 'registered'
+  },
+  markedAbsentAt: {
+    type: Date
+  },
+  markedAbsentBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   createdAt: {
     type: Date,
     default: Date.now

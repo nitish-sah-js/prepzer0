@@ -72,9 +72,13 @@ router.route("/mcq-questions").get(mcqquestions.getAllMCQQuestions)
 
 router.route("/profile/students").get(admincontroller.allStudents)
 router.route("/students/:studentId/exams").get(admincontroller.getStudentExams)
+router.route("/students/:studentId/edit").post(admincontroller.editStudent)
 
 router.route("/exam/candidates/:examId").get(admincontroller.examCandidates)
+router.route("/exam/:examId/attendance").get(admincontroller.getAttendancePage)
 router.route("/exam/absent/:examId").get(admincontroller.getAbsentStudents)
+router.route("/exam/:examId/mark-absent").post(admincontroller.markStudentsAbsent)
+router.route("/exam/:examId/export-submitted").get(admincontroller.exportSubmittedToCSV)
 router.post(
   "/api/submission/delete",
   requireAdminAPI,

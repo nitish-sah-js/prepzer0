@@ -8,6 +8,7 @@ const Submission = require('../models/SubmissionSchema');
 const ActivityTracker = require('../models/ActiveSession');
 const ReportModel = require('./../models/reportModel');
 const mongoose = require('mongoose');
+const ExamCandidate = require('../models/ExamCandidate');
 
 const EvaluationResult = require('../models/EvaluationResultSchema')
 
@@ -1562,56 +1563,9 @@ async function handleCandidatesDataRequest(req, res, examId) {
         }
     }
     
-    // Process active sessions of students who haven't submitted
-    activeSessionsMap.forEach((session, studentId) => {
-        if (!submittedStudentIds.has(studentId)) {
-            // Apply department filter for active sessions
-            if (departmentFilter && session.studentInfo.Department !== departmentFilter) {
-                return; // Skip this student
-            }
-
-            // Apply search filter for active sessions
-            if (search) {
-                const student = session.studentInfo;
-                const searchLower = search.toLowerCase();
-                const matchesSearch =
-                    (student.USN && student.USN.toLowerCase().includes(searchLower)) ||
-                    (student.Rollno && student.Rollno.toLowerCase().includes(searchLower)) ||
-                    (student.Department && student.Department.toLowerCase().includes(searchLower));
-
-                if (!matchesSearch) {
-                    return; // Skip this student
-                }
-            }
-
-            // Determine display based on exam status
-            let displayScore = 'In progress';
-            let evaluationStatus = 'Not submitted';
-
-            // If exam has ended and student hasn't submitted, mark as "Did not submit"
-            if (examHasEnded) {
-                displayScore = 'Did not submit';
-                evaluationStatus = 'Absent';
-            }
-
-            studentMap.set(studentId, {
-                student: session.studentInfo,
-                submission: null,
-                score: displayScore,
-                mcqScore: 0,
-                codingScore: 0,
-                totalScore: 0,
-                maxMCQScore: maxMCQScore,
-                maxCodingScore: maxCodingScore,
-                maxTotalScore: maxMCQScore + maxCodingScore,
-                evaluationStatus: evaluationStatus,
-                submittedAt: null,
-                activityStatus: session.status,
-                lastActive: session.lastPing,
-                hasSubmitted: false
-            });
-        }
-    });
+    // REMOVED: No longer processing active sessions of students who haven't submitted
+    // The candidates page should ONLY show students who actually submitted
+    // Students who started but didn't submit should NOT appear here
     
     let candidates = Array.from(studentMap.values());
     
@@ -1751,6 +1705,37 @@ exports.postManageDepartments = async (req, res) => {
 };
 
 /**
+ * Render attendance management page
+ * GET /admin/exam/:examId/attendance
+ */
+exports.getAttendancePage = async (req, res) => {
+    try {
+        const { examId } = req.params;
+
+        // Fetch the exam details
+        const exam = await Exam.findById(examId);
+
+        if (!exam) {
+            return res.status(404).render('error', {
+                message: 'Exam not found',
+                error: { status: 404, stack: '' }
+            });
+        }
+
+        res.render('exam_attendance', {
+            exam: exam
+        });
+
+    } catch (error) {
+        console.error('Error loading attendance page:', error);
+        res.status(500).render('error', {
+            message: 'Server error occurred while loading attendance page',
+            error: { status: 500, stack: process.env.NODE_ENV === 'development' ? error.stack : '' }
+        });
+    }
+};
+
+/**
  * Get absent students (eligible but didn't attempt exam)
  * GET /admin/exam/absent/:examId
  */
@@ -1826,34 +1811,42 @@ exports.getAbsentStudents = async (req, res) => {
             }
         }
 
-        // Get students who attempted the exam (have ActivityTracker or Submission)
-        const attemptedUSNs = new Set();
-
-        // Get all submissions for this exam
+        // Get students who SUBMITTED the exam (have Submission record)
+        const submittedUSNs = new Set();
         const submissions = await Submission.find({ exam: examId })
             .populate('student', 'USN')
             .select('student');
 
         submissions.forEach(sub => {
             if (sub.student && sub.student.USN) {
-                attemptedUSNs.add(sub.student.USN);
+                submittedUSNs.add(sub.student.USN);
             }
         });
 
-        // Get all activity sessions for this exam
+        // Get students who STARTED the exam (have ActivityTracker or Submission)
+        const startedUSNs = new Set();
+
+        // Add all submitted students to started
+        submissions.forEach(sub => {
+            if (sub.student && sub.student.USN) {
+                startedUSNs.add(sub.student.USN);
+            }
+        });
+
+        // Add students with activity sessions to started
         const activitySessions = await ActivityTracker.find({ examId: examId })
             .populate('userId', 'USN')
             .select('userId');
 
         activitySessions.forEach(session => {
             if (session.userId && session.userId.USN) {
-                attemptedUSNs.add(session.userId.USN);
+                startedUSNs.add(session.userId.USN);
             }
         });
 
-        // Filter out students who attempted the exam
+        // Filter: Absent = students who didn't start (no ActivityTracker, no Submission)
         const absentStudents = allEligibleStudents.filter(student =>
-            !attemptedUSNs.has(student.USN)
+            !startedUSNs.has(student.USN)
         );
 
         // Sort by USN
@@ -1864,7 +1857,8 @@ exports.getAbsentStudents = async (req, res) => {
             absentStudents: absentStudents,
             totalAbsent: absentStudents.length,
             totalEligible: allEligibleStudents.length,
-            totalAttempted: attemptedUSNs.size,
+            totalSubmitted: submittedUSNs.size,  // Changed: only students who submitted
+            totalStarted: startedUSNs.size - submittedUSNs.size,  // Started but didn't submit
             exam: {
                 _id: exam._id,
                 name: exam.name,
@@ -1878,6 +1872,275 @@ exports.getAbsentStudents = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Server error occurred while fetching absent students',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Export submitted students data to CSV
+ * GET /admin/exam/:examId/export-submitted
+ */
+exports.exportSubmittedToCSV = async (req, res) => {
+    try {
+        const { examId } = req.params;
+
+        if (!req.isAuthenticated()) {
+            return res.status(401).send('Not authenticated');
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin' && user.usertype !== 'teacher') {
+            return res.status(403).send('Unauthorized');
+        }
+
+        // Fetch the exam
+        const exam = await Exam.findById(examId).populate('mcqQuestions');
+        if (!exam) {
+            return res.status(404).send('Exam not found');
+        }
+
+        // Calculate max scores
+        const hasMCQ = exam.questionType === 'mcq' || exam.questionType === 'mcq&coding';
+        const hasCoding = exam.questionType === 'coding' || exam.questionType === 'mcq&coding';
+
+        let maxMCQScore = 0;
+        if (hasMCQ && exam.mcqQuestions && exam.mcqQuestions.length > 0) {
+            maxMCQScore = exam.mcqQuestions.reduce((sum, q) => sum + (q.marks || 0), 0);
+        }
+
+        let maxCodingScore = 0;
+        if (hasCoding) {
+            const codingEvaluation = await EvaluationResult.findOne({ examId: exam._id }).lean();
+            maxCodingScore = codingEvaluation ? (codingEvaluation.maxPossibleScore || 0) : 0;
+        }
+
+        // Get all submissions
+        const submissions = await Submission.find({ exam: examId })
+            .populate('student', 'USN email Department Semester Rollno fname lname phone')
+            .sort({ submittedAt: -1 });
+
+        // Get evaluation results for coding exams
+        let evaluationMap = new Map();
+        if (hasCoding) {
+            const studentIds = submissions.map(s => s.student && s.student._id ? s.student._id.toString() : null).filter(id => id !== null);
+            const evaluations = await EvaluationResult.find({
+                examId: examId,
+                userId: { $in: studentIds }
+            }).select('userId totalScore');
+
+            evaluations.forEach(evaluation => {
+                evaluationMap.set(evaluation.userId.toString(), evaluation);
+            });
+        }
+
+        // Prepare CSV data
+        const csvRows = [];
+
+        // Header
+        const headers = ['USN', 'Name', 'Email', 'Department', 'Semester', 'Roll No', 'Phone'];
+        if (hasMCQ && hasCoding) {
+            headers.push('MCQ Score', `MCQ Max (${maxMCQScore})`, 'Coding Score', `Coding Max (${maxCodingScore})`, 'Total Score', `Total Max (${maxMCQScore + maxCodingScore})`);
+        } else if (hasMCQ) {
+            headers.push('Score', `Max Score (${maxMCQScore})`);
+        } else if (hasCoding) {
+            headers.push('Score', `Max Score (${maxCodingScore})`);
+        }
+        headers.push('Submitted At');
+        csvRows.push(headers.join(','));
+
+        // Data rows
+        submissions.forEach(submission => {
+            if (!submission.student) return; // Skip orphaned submissions
+
+            const student = submission.student;
+            const row = [
+                student.USN || '',
+                `"${student.fname || ''} ${student.lname || ''}"`.trim() || 'N/A',
+                student.email || '',
+                student.Department || '',
+                student.Semester || '',
+                student.Rollno || '',
+                student.phone || ''
+            ];
+
+            // Scores
+            if (hasMCQ && hasCoding) {
+                const mcqScore = submission.score || 0;
+                const evaluation = evaluationMap.get(student._id.toString());
+                const codingScore = evaluation ? evaluation.totalScore : 0;
+                const totalScore = mcqScore + codingScore;
+
+                row.push(mcqScore, maxMCQScore, codingScore, maxCodingScore, totalScore, maxMCQScore + maxCodingScore);
+            } else if (hasMCQ) {
+                row.push(submission.score || 0, maxMCQScore);
+            } else if (hasCoding) {
+                const evaluation = evaluationMap.get(student._id.toString());
+                const codingScore = evaluation ? evaluation.totalScore : 0;
+                row.push(codingScore, maxCodingScore);
+            }
+
+            // Submitted at
+            row.push(submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : 'N/A');
+
+            csvRows.push(row.join(','));
+        });
+
+        // Send CSV
+        const csvContent = csvRows.join('\n');
+        const filename = `submitted_students_${exam.name.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.csv`;
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(csvContent);
+
+    } catch (error) {
+        console.error('Error exporting submitted students:', error);
+        res.status(500).send('Server error occurred while exporting data');
+    }
+};
+
+/**
+ * Mark students as absent for an exam
+ * POST /admin/exam/:examId/mark-absent
+ */
+exports.markStudentsAbsent = async (req, res) => {
+    try {
+        const { examId } = req.params;
+        const { usns } = req.body; // Array of USNs to mark as absent
+
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authenticated'
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin' && user.usertype !== 'teacher') {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized'
+            });
+        }
+
+        if (!Array.isArray(usns) || usns.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide an array of USNs to mark as absent'
+            });
+        }
+
+        // Find the exam
+        const exam = await Exam.findById(examId);
+        if (!exam) {
+            return res.status(404).json({
+                success: false,
+                message: 'Exam not found'
+            });
+        }
+
+        // Update ExamCandidate records to mark as absent
+        const updateResult = await ExamCandidate.updateMany(
+            {
+                exam: examId,
+                usn: { $in: usns },
+                attendanceStatus: { $in: ['registered', 'started'] } // Only mark if not already submitted
+            },
+            {
+                $set: {
+                    attendanceStatus: 'absent',
+                    markedAbsentAt: new Date(),
+                    markedAbsentBy: user._id
+                }
+            }
+        );
+
+        res.json({
+            success: true,
+            message: `Successfully marked ${updateResult.modifiedCount} student(s) as absent`,
+            modifiedCount: updateResult.modifiedCount
+        });
+
+    } catch (error) {
+        console.error('Error marking students absent:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error occurred while marking students absent',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Edit/Update student details
+ * POST /admin/students/:studentId/edit
+ */
+exports.editStudent = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { fname, lname, USN, email, Department, Semester, phone, Rollno } = req.body;
+
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authenticated'
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin' && user.usertype !== 'teacher') {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized. Only admins and teachers can edit students.'
+            });
+        }
+
+        // Find the student
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
+        // Update student fields
+        student.fname = fname;
+        student.lname = lname;
+        student.USN = USN;
+        student.email = email;
+        student.Department = Department;
+        student.Semester = parseInt(Semester);
+
+        if (phone) student.phone = phone;
+        if (Rollno) student.Rollno = Rollno;
+
+        // Save updated student
+        await student.save();
+
+        res.json({
+            success: true,
+            message: 'Student updated successfully',
+            student: {
+                _id: student._id,
+                fname: student.fname,
+                lname: student.lname,
+                USN: student.USN,
+                email: student.email,
+                Department: student.Department,
+                Semester: student.Semester
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating student:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error occurred while updating student',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

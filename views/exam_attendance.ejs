@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Attendance - <%= exam.name %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --dark-bg: #111827;
+            --card-bg: #1f2937;
+            --light-text: #f9fafb;
+            --secondary-text: #9ca3af;
+            --border-color: #374151;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--secondary-text);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .table-dark {
+            background-color: var(--card-bg);
+            color: var(--light-text);
+        }
+
+        .table-dark th {
+            color: var(--secondary-text);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-status {
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-registered { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .badge-started { background-color: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .badge-submitted { background-color: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .badge-absent { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .search-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--light-text);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">Exam Attendance Management</h1>
+                    <p class="mb-0 text-secondary"><%= exam.name %></p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success" onclick="exportAbsentToCSV()">
+                        <i class="fas fa-file-csv"></i> Export Absent to CSV
+                    </button>
+                    <button class="btn btn-info" onclick="exportSubmittedToCSV()">
+                        <i class="fas fa-file-excel"></i> Export Submitted to CSV
+                    </button>
+                    <a href="/admin/exam/candidates/<%= exam._id %>" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Candidates
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Info Alert -->
+        <div class="alert alert-info mb-4" style="background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--light-text);">
+            <h6 class="alert-heading"><i class="fas fa-info-circle"></i> What does "Absent" mean?</h6>
+            <p class="mb-0">
+                <strong>Absent students</strong> are those who were registered for the exam but <strong>never opened/started the exam at all</strong>.<br>
+                <small class="text-muted">
+                    Note: Students who started the exam but didn't submit (e.g., browser closed, network issue) will show as "Did not submit" in the main candidates page, NOT as absent here.
+                </small>
+            </p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-number text-primary" id="total-eligible">-</div>
+                        <div class="stat-label">Total Eligible</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-number text-success" id="total-submitted">-</div>
+                        <div class="stat-label">Submitted</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-number text-warning" id="total-started">-</div>
+                        <div class="stat-label">Started (Not Submitted)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-number text-danger" id="total-absent">-</div>
+                        <div class="stat-label">Absent (Never Opened)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Absent Students Section -->
+        <div class="card">
+            <div class="card-header p-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Absent Students</h5>
+                <div class="d-flex gap-2">
+                    <input type="text" id="search-absent" class="search-box" placeholder="Search by USN, name..." style="width: 300px;">
+                    <button class="btn btn-danger" id="mark-all-absent" onclick="markAllAsAbsent()">
+                        <i class="fas fa-user-times"></i> Mark All as Absent
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all-absent" onchange="toggleAllAbsent(this)"></th>
+                                <th>USN</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Semester</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="absent-students-body">
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2 mb-0">Loading absent students...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer p-3">
+                <button class="btn btn-danger" id="mark-selected-absent" onclick="markSelectedAsAbsent()" disabled>
+                    <i class="fas fa-check"></i> Mark Selected as Absent
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const examId = '<%= exam._id %>';
+        let absentStudents = [];
+        let allStudents = [];
+
+        // Load absent students on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAbsentStudents();
+        });
+
+        async function loadAbsentStudents() {
+            try {
+                const response = await fetch(`/admin/exam/absent/${examId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    absentStudents = data.absentStudents;
+                    allStudents = data.absentStudents;
+
+                    // Update statistics
+                    document.getElementById('total-eligible').textContent = data.totalEligible;
+                    document.getElementById('total-submitted').textContent = data.totalSubmitted;  // Changed
+                    document.getElementById('total-absent').textContent = data.totalAbsent;
+                    document.getElementById('total-started').textContent = data.totalStarted;  // Changed: only started but didn't submit
+
+                    // Render table
+                    renderAbsentStudents(absentStudents);
+                } else {
+                    showError('Failed to load absent students: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error loading absent students:', error);
+                showError('Network error while loading absent students');
+            }
+        }
+
+        function renderAbsentStudents(students) {
+            const tbody = document.getElementById('absent-students-body');
+
+            if (students.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                            <p class="mb-0">No absent students! All registered students opened/started the exam.</p>
+                            <small class="text-muted d-block mt-2">Note: This only shows students who never opened the exam at all.<br>Students who started but didn't submit will show as "Not Submitted" in the candidates page.</small>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = students.map(student => `
+                <tr data-usn="${student.USN}">
+                    <td><input type="checkbox" class="absent-checkbox" value="${student.USN}"></td>
+                    <td><strong>${student.USN}</strong></td>
+                    <td>${student.name || 'N/A'}</td>
+                    <td><span class="badge bg-primary">${(student.Department || 'N/A').toUpperCase()}</span></td>
+                    <td>${student.Semester || 'N/A'}</td>
+                    <td>${student.email || 'N/A'}</td>
+                    <td><span class="badge badge-absent">Never Opened Exam</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="markSingleAsAbsent('${student.USN}')">
+                            <i class="fas fa-user-times"></i> Mark Absent
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Update button states
+            updateButtonStates();
+        }
+
+        function toggleAllAbsent(checkbox) {
+            const checkboxes = document.querySelectorAll('.absent-checkbox');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+            updateButtonStates();
+        }
+
+        function updateButtonStates() {
+            const checkboxes = document.querySelectorAll('.absent-checkbox:checked');
+            const markSelectedBtn = document.getElementById('mark-selected-absent');
+            markSelectedBtn.disabled = checkboxes.length === 0;
+        }
+
+        // Add event listeners to checkboxes
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('absent-checkbox')) {
+                updateButtonStates();
+            }
+        });
+
+        async function markSingleAsAbsent(usn) {
+            if (!confirm(`Are you sure you want to mark ${usn} as absent?`)) {
+                return;
+            }
+
+            await markAsAbsent([usn]);
+        }
+
+        async function markSelectedAsAbsent() {
+            const checkboxes = document.querySelectorAll('.absent-checkbox:checked');
+            const usns = Array.from(checkboxes).map(cb => cb.value);
+
+            if (usns.length === 0) {
+                alert('Please select at least one student');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to mark ${usns.length} student(s) as absent?`)) {
+                return;
+            }
+
+            await markAsAbsent(usns);
+        }
+
+        async function markAllAsAbsent() {
+            if (absentStudents.length === 0) {
+                alert('No students to mark as absent');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to mark ALL ${absentStudents.length} student(s) as absent?`)) {
+                return;
+            }
+
+            const usns = absentStudents.map(s => s.USN);
+            await markAsAbsent(usns);
+        }
+
+        async function markAsAbsent(usns) {
+            try {
+                const response = await fetch(`/admin/exam/${examId}/mark-absent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ usns })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`Successfully marked ${data.modifiedCount} student(s) as absent`);
+                    // Reload the page to refresh data
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error marking students absent:', error);
+                alert('Network error occurred');
+            }
+        }
+
+        // Search functionality
+        document.getElementById('search-absent').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+
+            if (searchTerm === '') {
+                renderAbsentStudents(allStudents);
+                return;
+            }
+
+            const filtered = allStudents.filter(student =>
+                (student.USN || '').toLowerCase().includes(searchTerm) ||
+                (student.name || '').toLowerCase().includes(searchTerm) ||
+                (student.Department || '').toLowerCase().includes(searchTerm) ||
+                (student.email || '').toLowerCase().includes(searchTerm)
+            );
+
+            renderAbsentStudents(filtered);
+        });
+
+        function showError(message) {
+            const tbody = document.getElementById('absent-students-body');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p class="mb-0">${message}</p>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // CSV Export Functions
+        function exportAbsentToCSV() {
+            if (absentStudents.length === 0) {
+                alert('No absent students to export');
+                return;
+            }
+
+            const csvRows = [];
+            // Header
+            csvRows.push(['USN', 'Name', 'Department', 'Semester', 'Email', 'Phone', 'Roll No'].join(','));
+
+            // Data rows
+            absentStudents.forEach(student => {
+                const row = [
+                    student.USN || '',
+                    `"${student.name || ''}"`,
+                    student.Department || '',
+                    student.Semester || '',
+                    student.email || '',
+                    student.phone || '',
+                    student.Rollno || ''
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', `absent_students_${examId}_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function exportSubmittedToCSV() {
+            try {
+                // Redirect to the export endpoint
+                window.location.href = `/admin/exam/${examId}/export-submitted`;
+            } catch (error) {
+                console.error('Error exporting submitted data:', error);
+                alert('Error occurred while exporting');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -69,9 +69,14 @@
                 </div>
                 <div class="exam-detail-item">
                     <div class="exam-detail-label">Actions</div>
-                    <div class="exam-detail-value">
-                        <a href="/admin/exam/<%= exam._id %>/report" class="btn btn-sm btn-success">
-                            <i class="fas fa-file-excel"></i> Export Report
+                    <div class="exam-detail-value" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <a href="/admin/exam/<%= exam._id %>/report" class="action-btn action-btn-success">
+                            <i class="fas fa-file-excel"></i>
+                            <span>Export Report</span>
+                        </a>
+                        <a href="/admin/exam/<%= exam._id %>/attendance" class="action-btn action-btn-warning">
+                            <i class="fas fa-user-check"></i>
+                            <span>Manage Attendance</span>
                         </a>
                     </div>
                 </div>

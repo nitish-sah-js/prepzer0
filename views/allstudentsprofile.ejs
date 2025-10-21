@@ -124,6 +124,7 @@
       border: 1px solid var(--border-color);
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
       cursor: pointer;
+      position: relative;
     }
 
     .student-card:hover {
@@ -249,6 +250,144 @@
         justify-content: center;
       }
     }
+
+    /* Edit Button */
+    .edit-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+
+    .edit-btn:hover {
+      background-color: var(--hover-accent);
+      transform: scale(1.05);
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      background-color: var(--card-bg);
+      margin: 5% auto;
+      padding: 30px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent-color);
+    }
+
+    .close {
+      color: var(--text-secondary);
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .close:hover {
+      color: var(--text-primary);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background-color: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 15px;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 30px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--hover-accent);
+    }
+
+    .btn-secondary {
+      background-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background-color: #4a5873;
+    }
   </style>
 </head>
 <body>
@@ -298,9 +437,10 @@
     <div class="students-container" id="studentList">
       <% if(students && students.length > 0) { %>
         <% students.forEach(student => { %>
-          <div class="student-card" onclick="location.href='/admin/students/<%= student._id %>/exams'">
-            <img class="student-avatar" src="<%= student.imageurl || 'https://randomuser.me/api/portraits/men/1.jpg' %>" alt="<%= student.name %>" />
-            <div class="student-info">
+          <div class="student-card">
+            <button class="edit-btn" onclick="event.stopPropagation(); openEditModal('<%= student._id %>', '<%= student.fname %>', '<%= student.lname %>', '<%= student.USN %>', '<%= student.email %>', '<%= student.Department %>', '<%= student.Semester %>', '<%= student.phone || '' %>', '<%= student.Rollno || '' %>')">Edit</button>
+            <img class="student-avatar" src="<%= student.imageurl || 'https://randomuser.me/api/portraits/men/1.jpg' %>" alt="<%= student.name %>" onclick="location.href='/admin/students/<%= student._id %>/exams'" />
+            <div class="student-info" onclick="location.href='/admin/students/<%= student._id %>/exams'">
               <div class="student-name"><%= student.fname || 'Student Name' %></div>
               <div class="student-usn"><%= student.USN || 'N/A' %></div>
               <div class="student-details">
@@ -319,11 +459,151 @@
     </div>
   </div>
 
+  <!-- Edit Student Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Student</h2>
+        <span class="close" onclick="closeEditModal()">&times;</span>
+      </div>
+      <form id="editStudentForm" onsubmit="saveStudent(event)">
+        <input type="hidden" id="studentId" name="studentId">
+
+        <div class="form-group">
+          <label for="fname">First Name</label>
+          <input type="text" id="fname" name="fname" required>
+        </div>
+
+        <div class="form-group">
+          <label for="lname">Last Name</label>
+          <input type="text" id="lname" name="lname" required>
+        </div>
+
+        <div class="form-group">
+          <label for="usn">USN</label>
+          <input type="text" id="usn" name="USN" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="department">Department</label>
+          <select id="department" name="Department" required>
+            <option value="cs">Computer Science</option>
+            <option value="is">Information Science</option>
+            <option value="ec">Electronics & Communication</option>
+            <option value="et">Electronics & Telecommunication</option>
+            <option value="ai">Artificial Intelligence</option>
+            <option value="cv">Civil Engineering</option>
+            <option value="ee">Electrical Engineering</option>
+            <option value="ad">Automation & Robotics</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="semester">Semester</label>
+          <select id="semester" name="Semester" required>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+            <option value="3">Semester 3</option>
+            <option value="4">Semester 4</option>
+            <option value="5">Semester 5</option>
+            <option value="6">Semester 6</option>
+            <option value="7">Semester 7</option>
+            <option value="8">Semester 8</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone (Optional)</label>
+          <input type="tel" id="phone" name="phone">
+        </div>
+
+        <div class="form-group">
+          <label for="rollno">Roll Number (Optional)</label>
+          <input type="text" id="rollno" name="Rollno">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Making student cards clickable already handled with onclick attribute
-      // This space is available for any additional JavaScript functionality
-    });
+    // Open edit modal
+    function openEditModal(id, fname, lname, usn, email, dept, sem, phone, rollno) {
+      document.getElementById('studentId').value = id;
+      document.getElementById('fname').value = fname;
+      document.getElementById('lname').value = lname;
+      document.getElementById('usn').value = usn;
+      document.getElementById('email').value = email;
+      document.getElementById('department').value = dept;
+      document.getElementById('semester').value = sem;
+      document.getElementById('phone').value = phone;
+      document.getElementById('rollno').value = rollno;
+
+      document.getElementById('editModal').style.display = 'block';
+    }
+
+    // Close edit modal
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modal = document.getElementById('editModal');
+      if (event.target == modal) {
+        closeEditModal();
+      }
+    }
+
+    // Save student
+    async function saveStudent(event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const studentId = formData.get('studentId');
+
+      const data = {
+        fname: formData.get('fname'),
+        lname: formData.get('lname'),
+        USN: formData.get('USN'),
+        email: formData.get('email'),
+        Department: formData.get('Department'),
+        Semester: formData.get('Semester'),
+        phone: formData.get('phone'),
+        Rollno: formData.get('Rollno')
+      };
+
+      try {
+        const response = await fetch(`/admin/students/${studentId}/edit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Student updated successfully!');
+          location.reload();
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error updating student:', error);
+        alert('Network error occurred');
+      }
+    }
   </script>
 </body>
 </html>

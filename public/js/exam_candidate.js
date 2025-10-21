@@ -216,7 +216,7 @@ function renderScore(candidate) {
     if (candidate.score === 'In progress') {
         return '<span class="badge badge-info">In progress</span>';
     } else if (candidate.score === 'Did not submit') {
-        return '<span class="badge badge-danger">Did not submit</span>';
+        return '<span class="badge badge-warning">Not Submitted</span>';
     } else if (candidate.score === 'N/A' || !candidate.score) {
         return '<span class="badge badge-secondary">N/A</span>';
     } else {
@@ -252,9 +252,7 @@ function renderEvaluationStatus(candidate) {
         return '<span class="badge badge-secondary">Not Applicable</span>';
     }
 
-    if (candidate.evaluationStatus === 'Absent') {
-        return '<span class="badge badge-danger">Absent</span>';
-    } else if (candidate.evaluationStatus === 'Evaluated') {
+    if (candidate.evaluationStatus === 'Evaluated') {
         return '<span class="badge badge-success">Evaluated</span>';
     } else {
         return `<span class="badge badge-warning">${candidate.evaluationStatus}</span>`;
@@ -268,7 +266,7 @@ function renderSubmittedAt(candidate) {
     } else if (candidate.activityStatus === 'active') {
         return '<span class="badge badge-info">Exam in progress</span>';
     } else if (candidate.score === 'Did not submit') {
-        return '<span class="badge badge-danger">Not submitted</span>';
+        return '<span class="badge badge-warning">Not submitted</span>';
     } else {
         return 'N/A';
     }
@@ -287,9 +285,9 @@ function renderActions(candidate) {
         }
 
         return html;
-    } else if (candidate.score === 'Did not submit' || candidate.evaluationStatus === 'Absent') {
-        return `<button class="btn btn-sm btn-danger" disabled>
-                    <i class="fas fa-user-times"></i> Absent
+    } else if (candidate.score === 'Did not submit') {
+        return `<button class="btn btn-sm btn-warning" disabled>
+                    <i class="fas fa-times-circle"></i> Not Submitted
                 </button>`;
     } else {
         return `<button class="btn btn-sm btn-secondary" disabled>

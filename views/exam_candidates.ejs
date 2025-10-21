@@ -445,6 +445,9 @@
                         <a href="/admin/exam/<%= exam._id %>/report" class="btn btn-sm btn-success">
                             <i class="fas fa-file-excel"></i> Export Report
                         </a>
+                        <a href="/admin/exam/<%= exam._id %>/attendance" class="btn btn-sm btn-warning ms-2">
+                            <i class="fas fa-user-check"></i> Manage Attendance
+                        </a>
                     </div>
                 </div>
             </div>
@@ -673,7 +676,7 @@ async function evaluateAllSubmissions(examId) {
     <% if (candidate.score === 'In progress') { %>
         <span class="badge badge-info">In progress</span>
     <% } else if (candidate.score === 'Did not submit') { %>
-        <span class="badge badge-danger">Did not submit</span>
+        <span class="badge badge-warning">Not Submitted</span>
     <% } else if (candidate.score === 'N/A' || !candidate.score) { %>
         <span class="badge badge-secondary">N/A</span>
     <% } else { %>
@@ -712,9 +715,7 @@ async function evaluateAllSubmissions(examId) {
                                     <!-- Evaluation status for coding exams -->
                                     <% if (hasCoding) { %>
                                         <td>
-                                            <% if (candidate.evaluationStatus === 'Absent') { %>
-                                                <span class="badge badge-danger">Absent</span>
-                                            <% } else if (candidate.evaluationStatus === 'Evaluated') { %>
+                                            <% if (candidate.evaluationStatus === 'Evaluated') { %>
                                                 <span class="badge badge-success">Evaluated</span>
                                             <% } else if (candidate.evaluationStatus === 'Pending Evaluation' || candidate.evaluationStatus === 'Not submitted') { %>
                                                 <span class="badge badge-warning"><%= candidate.evaluationStatus %></span>
@@ -733,7 +734,7 @@ async function evaluateAllSubmissions(examId) {
                                         <% } else if (candidate.activityStatus === 'active') { %>
                                             <span class="badge badge-info">Exam in progress</span>
                                         <% } else if (candidate.score === 'Did not submit') { %>
-                                            <span class="badge badge-danger">Not submitted</span>
+                                            <span class="badge badge-warning">Not submitted</span>
                                         <% } else { %>
                                             N/A
                                         <% } %>
@@ -748,9 +749,9 @@ async function evaluateAllSubmissions(examId) {
                                                     <i class="fas fa-code"></i> Evaluate
                                                 </a>
                                             <% } %>
-                                        <% } else if (candidate.score === 'Did not submit' || candidate.evaluationStatus === 'Absent') { %>
-                                            <button class="btn btn-sm btn-danger" disabled>
-                                                <i class="fas fa-user-times"></i> Absent
+                                        <% } else if (candidate.score === 'Did not submit') { %>
+                                            <button class="btn btn-sm btn-warning" disabled>
+                                                <i class="fas fa-times-circle"></i> Not Submitted
                                             </button>
                                         <% } else { %>
                                             <button class="btn btn-sm btn-secondary" disabled>
