@@ -215,6 +215,8 @@ function renderActivityStatus(candidate) {
 function renderScore(candidate) {
     if (candidate.score === 'In progress') {
         return '<span class="badge badge-info">In progress</span>';
+    } else if (candidate.score === 'Did not submit') {
+        return '<span class="badge badge-danger">Did not submit</span>';
     } else if (candidate.score === 'N/A' || !candidate.score) {
         return '<span class="badge badge-secondary">N/A</span>';
     } else {
@@ -249,9 +251,14 @@ function renderEvaluationStatus(candidate) {
     if (!candidate.evaluationStatus) {
         return '<span class="badge badge-secondary">Not Applicable</span>';
     }
-    
-    const statusClass = candidate.evaluationStatus === 'Evaluated' ? 'badge-success' : 'badge-warning';
-    return `<span class="badge ${statusClass}">${candidate.evaluationStatus}</span>`;
+
+    if (candidate.evaluationStatus === 'Absent') {
+        return '<span class="badge badge-danger">Absent</span>';
+    } else if (candidate.evaluationStatus === 'Evaluated') {
+        return '<span class="badge badge-success">Evaluated</span>';
+    } else {
+        return `<span class="badge badge-warning">${candidate.evaluationStatus}</span>`;
+    }
 }
 
 function renderSubmittedAt(candidate) {
@@ -260,6 +267,8 @@ function renderSubmittedAt(candidate) {
         return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
     } else if (candidate.activityStatus === 'active') {
         return '<span class="badge badge-info">Exam in progress</span>';
+    } else if (candidate.score === 'Did not submit') {
+        return '<span class="badge badge-danger">Not submitted</span>';
     } else {
         return 'N/A';
     }
@@ -270,14 +279,18 @@ function renderActions(candidate) {
         let html = `<a href="/admin/exam/submission/${candidate.submission._id}" class="btn btn-sm btn-info">
                         <i class="fas fa-eye"></i> View Details
                     </a>`;
-        
+
         if (window.examData.hasCoding && candidate.evaluationStatus !== 'Evaluated') {
             html += `<a href="/admin/exam/${window.examData.examId}/evaluate/${candidate.student._id}" class="btn btn-sm btn-warning mt-1">
                         <i class="fas fa-code"></i> Evaluate
                     </a>`;
         }
-        
+
         return html;
+    } else if (candidate.score === 'Did not submit' || candidate.evaluationStatus === 'Absent') {
+        return `<button class="btn btn-sm btn-danger" disabled>
+                    <i class="fas fa-user-times"></i> Absent
+                </button>`;
     } else {
         return `<button class="btn btn-sm btn-secondary" disabled>
                     <i class="fas fa-clock"></i> Pending

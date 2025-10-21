@@ -571,13 +571,16 @@ html >
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">All Exams</h2>
-                <div style="display: flex; gap: 0.75rem;">
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <a href="/admin/create_exam" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Create New Exam
                     </a>
                     <a href="/admin/addbulckstudent" class="btn" style="background-color: var(--success); color: white;">
                         <i class="fas fa-user-plus"></i> Add Bulk Students
                     </a>
+                    <button class="btn" onclick="openSemesterUpgradeModal()" style="background-color: #10b981; color: white; border: none;">
+                        <i class="fas fa-graduation-cap"></i> Upgrade Semester
+                    </button>
                 </div>
             </div>
             <div class="table-container">
@@ -840,6 +843,194 @@ html >
         document.addEventListener('DOMContentLoaded', function() {
             countExams();
         });
+
+        // Semester Upgrade Modal Functions
+        function openSemesterUpgradeModal() {
+            document.getElementById('semesterUpgradeModal').style.display = 'flex';
+        }
+
+        function closeSemesterUpgradeModal() {
+            document.getElementById('semesterUpgradeModal').style.display = 'none';
+            // Reset form
+            document.getElementById('upgradeSemesterForm').reset();
+            document.getElementById('upgradeMessage').style.display = 'none';
+        }
+
+        async function upgradeSemester() {
+            const fromSemester = document.getElementById('fromSemester').value;
+            const department = document.getElementById('upgradeDepartment').value;
+            const messageDiv = document.getElementById('upgradeMessage');
+            const submitButton = document.querySelector('#semesterUpgradeModal .btn-primary');
+
+            if (!fromSemester) {
+                showUpgradeMessage('Please select a semester', 'error');
+                return;
+            }
+
+            // Disable button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upgrading...';
+
+            try {
+                const response = await fetch('/admin/upgrade-semester', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fromSemester: parseInt(fromSemester),
+                        department: department
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showUpgradeMessage(data.message, 'success');
+                    // Reset form after 2 seconds
+                    setTimeout(() => {
+                        closeSemesterUpgradeModal();
+                    }, 2000);
+                } else {
+                    showUpgradeMessage(data.message || 'Failed to upgrade semester', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showUpgradeMessage('An error occurred while upgrading semester', 'error');
+            } finally {
+                // Re-enable button
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-graduation-cap"></i> Upgrade Semester';
+            }
+        }
+
+        function showUpgradeMessage(message, type) {
+            const messageDiv = document.getElementById('upgradeMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            messageDiv.style.padding = '10px';
+            messageDiv.style.marginBottom = '15px';
+            messageDiv.style.borderRadius = '4px';
+
+            if (type === 'success') {
+                messageDiv.style.backgroundColor = '#10b981';
+                messageDiv.style.color = 'white';
+            } else {
+                messageDiv.style.backgroundColor = '#ef4444';
+                messageDiv.style.color = 'white';
+            }
+        }
     </script>
+
+    <!-- Semester Upgrade Modal -->
+    <div id="semesterUpgradeModal" style="
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+    ">
+        <div style="
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: var(--light-text);">
+                    <i class="fas fa-graduation-cap"></i> Upgrade Semester
+                </h2>
+                <button onclick="closeSemesterUpgradeModal()" style="
+                    background: transparent;
+                    border: none;
+                    color: var(--secondary-text);
+                    font-size: 24px;
+                    cursor: pointer;
+                ">&times;</button>
+            </div>
+
+            <div id="upgradeMessage" style="display: none;"></div>
+
+            <form id="upgradeSemesterForm" onsubmit="event.preventDefault(); upgradeSemester();">
+                <div style="margin-bottom: 20px;">
+                    <label for="fromSemester" style="display: block; margin-bottom: 8px; color: var(--light-text);">
+                        Upgrade students from semester: <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select id="fromSemester" required style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid var(--border-color);
+                        border-radius: 4px;
+                        background-color: var(--dark-bg);
+                        color: var(--light-text);
+                        font-size: 14px;
+                    ">
+                        <option value="">Select Semester</option>
+                        <option value="1">Semester 1 → 2</option>
+                        <option value="2">Semester 2 → 3</option>
+                        <option value="3">Semester 3 → 4</option>
+                        <option value="4">Semester 4 → 5</option>
+                        <option value="5">Semester 5 → 6</option>
+                        <option value="6">Semester 6 → 7</option>
+                        <option value="7">Semester 7 → 8</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label for="upgradeDepartment" style="display: block; margin-bottom: 8px; color: var(--light-text);">
+                        Department (optional - leave as 'All' to upgrade all departments):
+                    </label>
+                    <select id="upgradeDepartment" style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid var(--border-color);
+                        border-radius: 4px;
+                        background-color: var(--dark-bg);
+                        color: var(--light-text);
+                        font-size: 14px;
+                    ">
+                        <option value="all">All Departments</option>
+                        <option value="cs">CS - Computer Science</option>
+                        <option value="is">IS - Information Science</option>
+                        <option value="ec">EC - Electronics & Communication</option>
+                        <option value="et">ET - Electronics & Telecommunication</option>
+                        <option value="ai">AI - Artificial Intelligence</option>
+                        <option value="cv">CV - Civil Engineering</option>
+                        <option value="ee">EE - Electrical Engineering</option>
+                        <option value="ad">AD - Automation & Robotics</option>
+                    </select>
+                </div>
+
+                <div style="
+                    background-color: rgba(245, 158, 11, 0.1);
+                    border-left: 4px solid var(--warning);
+                    padding: 12px;
+                    margin-bottom: 20px;
+                    border-radius: 4px;
+                ">
+                    <p style="margin: 0; color: var(--warning); font-size: 14px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> This action will upgrade all students in the selected semester. This cannot be undone easily.
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeSemesterUpgradeModal()" class="btn btn-secondary">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="background-color: #10b981; border: none;">
+                        <i class="fas fa-graduation-cap"></i> Upgrade Semester
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

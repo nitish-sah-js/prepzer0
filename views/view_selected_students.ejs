@@ -38,7 +38,7 @@
                                         <td><%= student.USN %></td>
                                         <td><%= student.name %></td>
                                         <td><%= student.Department %></td>
-                                        <td><%= student.Semester %></td>
+                                        <td><%= student.CurrentSemester || student.Semester %></td>
                                     </tr>
                                 <% }) %>
                             </tbody>

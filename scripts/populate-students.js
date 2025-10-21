@@ -4,7 +4,7 @@ const User = require("../models/usermodel")
 
 // Configuration
 const COLLEGE_CODE = "1by"
-const BASE_YEAR = 22 // 2021
+const BASE_YEAR = 24 // 2021
 const PASSWORD = "student123" // Same password for all students
 const STUDENTS_PER_DEPT_PER_SEM = 15 // 15 students per semester = 120 total per dept
 

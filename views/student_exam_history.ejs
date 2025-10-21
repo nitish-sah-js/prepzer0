@@ -337,8 +337,8 @@
           <% if(student.Department) { %>
             <span class="profile-badge"><%= student.Department %></span>
           <% } %>
-          <% if(student.Semester) { %>
-            <span class="profile-badge">Semester <%= student.Semester %></span>
+          <% if(student.CurrentSemester || student.Semester) { %>
+            <span class="profile-badge">Semester <%= student.CurrentSemester || student.Semester %></span>
           <% } %>
           <% if(student.Section) { %>
             <span class="profile-badge">Section <%= student.Section %></span>

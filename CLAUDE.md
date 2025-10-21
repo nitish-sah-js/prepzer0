@@ -15,6 +15,7 @@ PrepZer0 is a comprehensive online examination platform built with Node.js, Expr
 - Email notifications and exam reminders
 - Comprehensive admin dashboard for teachers and administrators
 - Secure file uploads with validation (CSV, Excel, Images)
+- Bulk student account creation via CSV upload
 
 ## Development Commands
 
@@ -55,7 +56,7 @@ See `scripts/README.md` for detailed documentation on each script.
 ### Core Structure
 - **Entry Point**: `server.js` (HTTP server setup, port binding, exam reminder scheduling) → `app.js` (Express app configuration)
 - **Models**: Mongoose schemas in `/models/` directory (13 models)
-- **Controllers**: Business logic in `/controllers/` directory (15 controllers)
+- **Controllers**: Business logic in `/controllers/` directory (16 controllers)
 - **Routes**: Express route handlers in `/routes/` directory (7 route files)
 - **Views**: EJS templates in `/views/` directory (40+ view files)
 - **Utils**: Helper functions in `/utils/` directory (6 utility files)
@@ -71,6 +72,7 @@ See `scripts/README.md` for detailed documentation on each script.
   - `upload.js` - Secure file upload configurations (CSV, Image, Excel)
 - **Scripts**: Database management and utility scripts in `/scripts/` directory
 - **Public**: Static assets (CSS, JS, images) in `/public/` directory
+- **Templates**: CSV templates for bulk uploads in `/templates/` directory
 
 ### Key Models
 - **User** (`usermodel.js`): Student/teacher/admin with USN-based identification. Stores `currentSessionId` for single-device enforcement. Uses passport-local-mongoose for authentication
@@ -137,6 +139,7 @@ See `scripts/README.md` for detailed documentation on each script.
   - `dashboard.ejs` - Student dashboard showing available exams
   - `admin.ejs` - Teacher/admin dashboard with exam management
   - `exam_candidates.ejs` - View exam candidates and submissions (handles orphaned data)
+  - `bulk_student_upload.ejs` - Bulk student account creation interface
   - `departments.ejs` / `manage_departments.ejs` - Department management interface
   - `create_exam.ejs` / `edit_exam.ejs` - Exam creation and editing forms
   - `add_mcq.ejs` / `edit_mcq.ejs` - MCQ question management
@@ -271,6 +274,12 @@ Controllers follow a consistent pattern with authentication checks and user type
 - `/` - Home routes (home.js)
 - `/dashboard` - Student dashboard and exam interface (dashboard.js)
 - `/admin` - Admin panel for exam management (admin.js)
+  - `/admin/addbulckstudent` (GET/POST) - Bulk student upload interface
+  - `/admin/download-student-template` (GET) - Download CSV template
+  - `/admin/departments` - Department management
+  - `/admin/exam/:examId` - Exam editing
+  - `/admin/create_exam` - Create new exam
+  - `/admin/exam/candidates/:examId` - View exam candidates and submissions
 - `/authenticate` - Login/logout functionality (authenticate.js)
 - `/profile` - User profile management (profile.js)
 - `/supadmin` - Super admin functions (supadmin.js)
@@ -324,6 +333,7 @@ EMAIL_FROM=services@prepzer0.co.in
 - **activeSessionController.js**: Track real-time activity pings, update ActiveSession status during exams
 - **reportController.js**: Generate assessment reports with detailed analysis
 - **departmentcontroller.js**: CRUD operations for departments (create, read, update, delete, toggle active status)
+- **bulkStudentController.js**: Bulk student account creation via CSV upload, template download, batch user registration with shared passwords
 - **supadmin.js**: Super admin functions (user management, system-wide operations)
 - **profilecontroller.js**: User profile management and updates
 - **homecontroller.js**: Landing page and public routes
@@ -367,6 +377,37 @@ Score is stored in Submission document immediately upon submission.
 - Templates: account verification (signup), exam reminders (scheduled)
 - Async sending via utils/email.js
 
+### Bulk Student Account Creation
+Admins can create multiple student accounts at once via CSV upload at `/admin/addbulckstudent`:
+
+**Features**:
+- Upload CSV file with student details (email, USN, department, semester, optional: fname, lname, phone, imageurl)
+- Set a common password for all uploaded students
+- Auto-approval: students are immediately active and can login without email verification (`userallowed: true`, `active: true`)
+- Automatic year extraction from USN (characters 4-5)
+- Duplicate detection (skips existing emails/USNs)
+- Detailed error reporting for invalid rows
+- Download sample CSV template at `/admin/download-student-template`
+
+**CSV Format** (required columns: email, usn, department, semester):
+```csv
+email,usn,department,semester,fname,lname,phone,imageurl
+student1@example.com,1BY22CS001,cs,1,John,Doe,9876543210,
+student2@example.com,1BY22CS002,cs,1,Jane,Smith,9876543211,https://example.com/profile.jpg
+```
+
+**Validation**:
+- Email: valid format, unique
+- USN: valid format (LocationYearDeptRollNo), unique, year auto-extracted
+- Department: lowercase, must be valid department code (cs, is, ec, et, ai, cv, ee, ad)
+- Semester: integer 1-8
+- Phone (optional): 10 digits
+- Password: minimum 6 characters (shared across all uploaded students)
+
+**Security**: All passwords are hashed using bcrypt via passport-local-mongoose. Students should change their password after first login.
+
+See `BULK_STUDENT_UPLOAD_FEATURE.md` for detailed documentation and examples.
+
 ## Orphaned Data Handling
 
 The system handles orphaned database references that occur when User records are deleted while having active sessions or submissions:
@@ -399,12 +440,15 @@ No specific Node.js test framework is configured - implement tests as needed for
 
 ## Additional Files & Documentation
 
-New untracked files in the repository:
+Additional documentation in the repository:
 - `SECURITY_AUDIT.md` - Security audit documentation
 - `SECURITY_FIXES_APPLIED.md` - Record of security patches
+- `BULK_STUDENT_UPLOAD_FEATURE.md` - Detailed guide for bulk student account creation
+- `scripts/README.md` - Documentation for database management scripts
 - `middleware/auth.js` - Authentication middleware
 - `config/` - Configuration files (including `upload.js`)
 - `services/` - Service layer files
+- `templates/student_upload_template.csv` - Sample CSV template for bulk student uploads
 - `models/CodingQuestion.js` / `Codingschema.js` - Coding question models (future feature)
 - `views/add_coding.ejs`, `edit_coding.ejs`, `sel_coding_db.ejs` - Coding exam views (future feature)
 

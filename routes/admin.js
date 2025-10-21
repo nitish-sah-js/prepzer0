@@ -74,6 +74,7 @@ router.route("/profile/students").get(admincontroller.allStudents)
 router.route("/students/:studentId/exams").get(admincontroller.getStudentExams)
 
 router.route("/exam/candidates/:examId").get(admincontroller.examCandidates)
+router.route("/exam/absent/:examId").get(admincontroller.getAbsentStudents)
 router.post(
   "/api/submission/delete",
   requireAdminAPI,
@@ -151,5 +152,8 @@ router
 router
   .route("/api/departments/active")
   .get(departmentController.getActiveDepartments)
+
+// Semester upgrade route
+router.route("/upgrade-semester").post(admincontroller.upgradeSemester)
 
 module.exports = router

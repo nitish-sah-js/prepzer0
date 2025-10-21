@@ -711,7 +711,7 @@
             <div class="col-md-12">
                 <div class="dashboard-header">
                     <h1>Welcome, <%= user.fname %> <%= user.lname %></h1>
-                    <p class="mb-0">Department: <%= user.Department.toUpperCase() %> | Semester: <%= user.Semester %></p>
+                    <p class="mb-0">Department: <%= user.Department.toUpperCase() %> | Semester: <%= user.CurrentSemester || user.Semester %></p>
                 </div>
             </div>
         </div>

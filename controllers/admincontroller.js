@@ -1357,13 +1357,18 @@ async function handleCandidatesDataRequest(req, res, examId) {
         });
     }
     
+    // Check if exam has ended
+    const now = new Date();
+    const examEndTime = new Date(exam.scheduleTill);
+    const examHasEnded = now > examEndTime;
+
     // Fetch active sessions for this exam
     const activeSessions = await ActivityTracker.find({ examId: examId })
         .populate('userId', 'USN email Department Semester Rollno _id fname lname')
         .select('userId status lastPingTimestamp')
         .sort({ lastPingTimestamp: -1 });
 
-    // Update status to offline for students who have submitted
+    // Update status to offline for students who have submitted OR if exam has ended
     // Also handle orphaned sessions where userId populate failed
     const updatePromises = [];
     const orphanedSessionIds = [];
@@ -1397,8 +1402,12 @@ async function handleCandidatesDataRequest(req, res, examId) {
 
         const studentId = session.userId._id.toString();
 
-        // If student has submitted, update their status to offline
-        if (submittedStudentIds.has(studentId) && session.status !== 'offline') {
+        // Mark session as offline if:
+        // 1. Student has submitted, OR
+        // 2. Exam has ended (past scheduleTill time)
+        const shouldBeOffline = submittedStudentIds.has(studentId) || examHasEnded;
+
+        if (shouldBeOffline && session.status !== 'offline') {
             updatePromises.push(
                 ActivityTracker.findByIdAndUpdate(
                     session._id,
@@ -1560,32 +1569,42 @@ async function handleCandidatesDataRequest(req, res, examId) {
             if (departmentFilter && session.studentInfo.Department !== departmentFilter) {
                 return; // Skip this student
             }
-            
+
             // Apply search filter for active sessions
             if (search) {
                 const student = session.studentInfo;
                 const searchLower = search.toLowerCase();
-                const matchesSearch = 
+                const matchesSearch =
                     (student.USN && student.USN.toLowerCase().includes(searchLower)) ||
                     (student.Rollno && student.Rollno.toLowerCase().includes(searchLower)) ||
                     (student.Department && student.Department.toLowerCase().includes(searchLower));
-                
+
                 if (!matchesSearch) {
                     return; // Skip this student
                 }
             }
-            
+
+            // Determine display based on exam status
+            let displayScore = 'In progress';
+            let evaluationStatus = 'Not submitted';
+
+            // If exam has ended and student hasn't submitted, mark as "Did not submit"
+            if (examHasEnded) {
+                displayScore = 'Did not submit';
+                evaluationStatus = 'Absent';
+            }
+
             studentMap.set(studentId, {
                 student: session.studentInfo,
                 submission: null,
-                score: 'In progress',
+                score: displayScore,
                 mcqScore: 0,
                 codingScore: 0,
                 totalScore: 0,
                 maxMCQScore: maxMCQScore,
                 maxCodingScore: maxCodingScore,
                 maxTotalScore: maxMCQScore + maxCodingScore,
-                evaluationStatus: 'Not submitted',
+                evaluationStatus: evaluationStatus,
                 submittedAt: null,
                 activityStatus: session.status,
                 lastActive: session.lastPing,
@@ -1728,5 +1747,263 @@ exports.postManageDepartments = async (req, res) => {
     } catch (error) {
         console.error('Error saving departments:', error);
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+/**
+ * Get absent students (eligible but didn't attempt exam)
+ * GET /admin/exam/absent/:examId
+ */
+exports.getAbsentStudents = async (req, res) => {
+    try {
+        const { examId } = req.params;
+
+        // Fetch the exam details
+        const exam = await Exam.findById(examId);
+
+        if (!exam) {
+            return res.status(404).json({
+                success: false,
+                message: 'Exam not found'
+            });
+        }
+
+        // Get all eligible students (same logic as getEligibleStudents)
+        let allEligibleStudents = [];
+
+        // Get students by department/semester
+        if (exam.departments && exam.departments.length > 0 && exam.semester) {
+            const departmentStudents = await User.find({
+                Department: { $in: exam.departments },
+                Semester: exam.semester,
+                usertype: 'student'
+            }).select('USN fname lname email Department Semester Rollno Year phone');
+
+            allEligibleStudents = departmentStudents.map(student => ({
+                _id: student._id,
+                USN: student.USN,
+                name: `${student.fname || ''} ${student.lname || ''}`.trim() || 'Unknown',
+                Department: student.Department,
+                Semester: student.Semester,
+                Rollno: student.Rollno,
+                email: student.email,
+                phone: student.phone,
+                source: 'department'
+            }));
+        }
+
+        // Get additional candidates from ExamCandidate
+        const additionalCandidates = await ExamCandidate.find({
+            exam: examId
+        });
+
+        const additionalUSNs = additionalCandidates.map(c => c.usn);
+        const additionalStudentData = await User.find({
+            USN: { $in: additionalUSNs },
+            usertype: 'student'
+        }).select('USN fname lname email Department Semester Rollno Year phone');
+
+        // Add additional students (Excel-uploaded)
+        for (const candidate of additionalCandidates) {
+            const isAlreadyIncluded = allEligibleStudents.some(s => s.USN === candidate.usn);
+
+            if (!isAlreadyIncluded) {
+                const userData = additionalStudentData.find(u => u.USN.toLowerCase() === candidate.usn.toLowerCase());
+
+                if (userData) {
+                    allEligibleStudents.push({
+                        _id: userData._id,
+                        USN: userData.USN,
+                        name: `${userData.fname || ''} ${userData.lname || ''}`.trim() || 'Unknown',
+                        Department: userData.Department,
+                        Semester: userData.Semester,
+                        Rollno: userData.Rollno,
+                        email: userData.email,
+                        phone: userData.phone,
+                        source: 'excel'
+                    });
+                }
+            }
+        }
+
+        // Get students who attempted the exam (have ActivityTracker or Submission)
+        const attemptedUSNs = new Set();
+
+        // Get all submissions for this exam
+        const submissions = await Submission.find({ exam: examId })
+            .populate('student', 'USN')
+            .select('student');
+
+        submissions.forEach(sub => {
+            if (sub.student && sub.student.USN) {
+                attemptedUSNs.add(sub.student.USN);
+            }
+        });
+
+        // Get all activity sessions for this exam
+        const activitySessions = await ActivityTracker.find({ examId: examId })
+            .populate('userId', 'USN')
+            .select('userId');
+
+        activitySessions.forEach(session => {
+            if (session.userId && session.userId.USN) {
+                attemptedUSNs.add(session.userId.USN);
+            }
+        });
+
+        // Filter out students who attempted the exam
+        const absentStudents = allEligibleStudents.filter(student =>
+            !attemptedUSNs.has(student.USN)
+        );
+
+        // Sort by USN
+        absentStudents.sort((a, b) => (a.USN || '').localeCompare(b.USN || ''));
+
+        res.json({
+            success: true,
+            absentStudents: absentStudents,
+            totalAbsent: absentStudents.length,
+            totalEligible: allEligibleStudents.length,
+            totalAttempted: attemptedUSNs.size,
+            exam: {
+                _id: exam._id,
+                name: exam.name,
+                departments: exam.departments,
+                semester: exam.semester
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching absent students:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error occurred while fetching absent students',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Upgrade semester for all students in a specific semester
+ * POST /admin/upgrade-semester
+ */
+exports.upgradeSemester = async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authenticated'
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin' && user.usertype !== 'teacher') {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized. Only admins and teachers can upgrade semesters.'
+            });
+        }
+
+        const { fromSemester, department } = req.body;
+
+        // Validate input
+        if (!fromSemester || fromSemester < 1 || fromSemester > 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid semester. Please provide a semester between 1 and 8.'
+            });
+        }
+
+        // Cannot upgrade from semester 8
+        if (fromSemester >= 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot upgrade from semester 8. Students are already in final semester.'
+            });
+        }
+
+        // Calculate new semester
+        const newSemester = parseInt(fromSemester) + 1;
+
+        // Build query filter - check both exact number and string representation
+        let filter = {
+            usertype: 'student',
+            $or: [
+                { Semester: parseInt(fromSemester) },
+                { Semester: fromSemester.toString() }
+            ]
+        };
+
+        // Add department filter if provided (case-insensitive)
+        if (department && department !== 'all') {
+            filter.Department = new RegExp(`^${department}$`, 'i');
+        }
+
+        console.log('Searching for students with filter:', JSON.stringify(filter));
+
+        // First, let's check all students to debug
+        const allStudents = await User.find({ usertype: 'student' }).select('Semester Department USN');
+        console.log(`Total students in database: ${allStudents.length}`);
+        console.log('Sample students:', allStudents.slice(0, 5).map(s => ({
+            USN: s.USN,
+            Semester: s.Semester,
+            SemesterType: typeof s.Semester,
+            Department: s.Department
+        })));
+
+        // Find students matching the criteria
+        const studentsToUpdate = await User.find(filter).select('USN Semester Department');
+
+        console.log(`Found ${studentsToUpdate.length} students matching filter`);
+
+        if (studentsToUpdate.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: `No students found in semester ${fromSemester}${department && department !== 'all' ? ` for department ${department.toUpperCase()}` : ''}. Check console for debug info.`,
+                debug: {
+                    totalStudents: allStudents.length,
+                    searchedSemester: fromSemester,
+                    searchedDepartment: department,
+                    sampleData: allStudents.slice(0, 3).map(s => ({
+                        Semester: s.Semester,
+                        Department: s.Department,
+                        USN: s.USN
+                    }))
+                }
+            });
+        }
+
+        // Update all matching students - use the same filter
+        const updateResult = await User.updateMany(
+            filter,
+            { $set: { Semester: newSemester } }
+        );
+
+        console.log(`Upgraded ${updateResult.modifiedCount} students from semester ${fromSemester} to ${newSemester}${department && department !== 'all' ? ` in department ${department.toUpperCase()}` : ''}`);
+
+        res.json({
+            success: true,
+            message: `Successfully upgraded ${updateResult.modifiedCount} student(s) from semester ${fromSemester} to semester ${newSemester}${department && department !== 'all' ? ` in department ${department.toUpperCase()}` : ''}.`,
+            data: {
+                fromSemester: fromSemester,
+                toSemester: newSemester,
+                department: department || 'all',
+                studentsUpdated: updateResult.modifiedCount,
+                studentDetails: studentsToUpdate.map(s => ({
+                    USN: s.USN,
+                    oldSemester: s.Semester,
+                    Department: s.Department
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error('Error upgrading semester:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error occurred while upgrading semester',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };

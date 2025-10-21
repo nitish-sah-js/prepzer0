@@ -305,7 +305,7 @@
               <div class="student-usn"><%= student.USN || 'N/A' %></div>
               <div class="student-details">
                 <span class="detail-badge"><%= student.Department || 'N/A' %></span>
-                <span class="detail-badge">Sem <%= student.Semester || 'N/A' %></span>
+                <span class="detail-badge">Sem <%= student.CurrentSemester || student.Semester || 'N/A' %></span>
               </div>
             </div>
           </div>
