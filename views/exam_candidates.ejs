@@ -347,13 +347,18 @@
         }
 
         /* Highlight for active students who haven't submitted */
-        tr.candidate-row:has(.badge-info) {
+        tr.candidate-row:has(.badge-info:contains("Active")) {
             background-color: rgba(23, 162, 184, 0.05);
         }
-        
+
         /* Active student highlight */
-        tr.candidate-row:has(.badge-success) {
+        tr.candidate-row:has(.badge-success:contains("Submitted")) {
             background-color: rgba(76, 175, 80, 0.05);
+        }
+
+        /* Left exam highlight */
+        tr.candidate-row:has(.badge-warning:contains("Left")) {
+            background-color: rgba(255, 193, 7, 0.05);
         }
         
         /* Score breakdown */
@@ -448,6 +453,9 @@
                         <a href="/admin/exam/<%= exam._id %>/attendance" class="btn btn-sm btn-warning ms-2">
                             <i class="fas fa-user-check"></i> Manage Attendance
                         </a>
+                        <button onclick="viewPartialSubmissions('<%= exam._id %>')" class="btn btn-sm btn-info ms-2">
+                            <i class="fas fa-save"></i> View Partial Submissions
+                        </button>
                     </div>
                 </div>
             </div>
@@ -654,11 +662,39 @@ async function evaluateAllSubmissions(examId) {
                                     <td><span class="department-badge"><%= candidate.student.Department || 'N/A' %></span></td>
                                     <td><%= candidate.student.CurrentSemester || candidate.student.Semester || 'N/A' %></td>
                                     <td>
-                                        <% if (candidate.activityStatus) { %>
-                                            <% let statusClass = candidate.activityStatus === 'active' ? 'badge-success' : 
-                                                (candidate.activityStatus === 'inactive' ? 'badge-warning' : 'badge-secondary') %>
+                                        <% if (candidate.hasSubmitted) { %>
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check-circle"></i> Submitted
+                                            </span>
+                                            <% if (candidate.submittedAt) { %>
+                                                <br>
+                                                <small class="text-muted">
+                                                    At: <%= new Date(candidate.submittedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                                </small>
+                                            <% } %>
+                                        <% } else if (candidate.activityStatus) { %>
+                                            <%
+                                            let statusClass, statusIcon, statusText;
+                                            if (candidate.activityStatus === 'active') {
+                                                statusClass = 'badge-info';
+                                                statusIcon = 'fa-circle';
+                                                statusText = 'Active';
+                                            } else if (candidate.activityStatus === 'left') {
+                                                statusClass = 'badge-warning';
+                                                statusIcon = 'fa-sign-out-alt';
+                                                statusText = 'Left Exam';
+                                            } else if (candidate.activityStatus === 'inactive') {
+                                                statusClass = 'badge-secondary';
+                                                statusIcon = 'fa-pause-circle';
+                                                statusText = 'Inactive';
+                                            } else {
+                                                statusClass = 'badge-secondary';
+                                                statusIcon = 'fa-circle';
+                                                statusText = candidate.activityStatus;
+                                            }
+                                            %>
                                             <span class="badge <%= statusClass %>">
-                                                <%= candidate.activityStatus %>
+                                                <i class="fas <%= statusIcon %>"></i> <%= statusText %>
                                             </span>
                                             <% if (candidate.lastActive) { %>
                                                 <br>
@@ -667,7 +703,9 @@ async function evaluateAllSubmissions(examId) {
                                                 </small>
                                             <% } %>
                                         <% } else { %>
-                                            <span class="badge badge-secondary">offline</span>
+                                            <span class="badge badge-secondary">
+                                                <i class="fas fa-times-circle"></i> Not Started
+                                            </span>
                                         <% } %>
                                     </td>
                                     
@@ -733,6 +771,14 @@ async function evaluateAllSubmissions(examId) {
                                             <%= new Date(candidate.submittedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
                                         <% } else if (candidate.activityStatus === 'active') { %>
                                             <span class="badge badge-info">Exam in progress</span>
+                                        <% } else if (candidate.activityStatus === 'left') { %>
+                                            <span class="badge badge-warning">Left without submitting</span>
+                                            <% if (candidate.hasPartialSubmission) { %>
+                                                <br>
+                                                <small class="text-info">
+                                                    <i class="fas fa-save"></i> <%= candidate.partialAnswersCount %> answers saved
+                                                </small>
+                                            <% } %>
                                         <% } else if (candidate.score === 'Did not submit') { %>
                                             <span class="badge badge-warning">Not submitted</span>
                                         <% } else { %>
@@ -818,6 +864,122 @@ async function evaluateAllSubmissions(examId) {
         setTimeout(function() {
             location.reload();
         }, 30000);
+
+        // Function to view partial submissions
+        function viewPartialSubmissions(examId) {
+            // Show loading state
+            const modal = createPartialSubmissionsModal();
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+
+            // Fetch partial submissions
+            fetch(`/admin/exam/${examId}/partial-submissions`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayPartialSubmissions(data.data, data.count);
+                    } else {
+                        alert('Failed to load partial submissions');
+                        modal.remove();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching partial submissions:', error);
+                    alert('Error loading partial submissions');
+                    modal.remove();
+                });
+        }
+
+        function createPartialSubmissionsModal() {
+            const modal = document.createElement('div');
+            modal.id = 'partialSubmissionsModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: none;
+                z-index: 1000;
+                overflow-y: auto;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: var(--card-bg); margin: 50px auto; max-width: 900px; border-radius: 8px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--light-text); margin: 0;">Partial Submissions (Students who left exam)</h3>
+                        <button onclick="document.getElementById('partialSubmissionsModal').remove()"
+                                style="background: transparent; border: none; color: var(--light-text); font-size: 24px; cursor: pointer;">
+                            &times;
+                        </button>
+                    </div>
+                    <div id="partialSubmissionsContent">
+                        <p style="color: var(--secondary-text);">Loading partial submissions...</p>
+                    </div>
+                </div>
+            `;
+
+            return modal;
+        }
+
+        function displayPartialSubmissions(submissions, count) {
+            const content = document.getElementById('partialSubmissionsContent');
+
+            if (count === 0) {
+                content.innerHTML = '<p style="color: var(--secondary-text);">No partial submissions found.</p>';
+                return;
+            }
+
+            let html = `
+                <p style="color: var(--secondary-text); margin-bottom: 20px;">Found ${count} partial submission(s)</p>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border-color);">
+                                <th style="text-align: left; padding: 10px; color: var(--light-text);">Student</th>
+                                <th style="text-align: left; padding: 10px; color: var(--light-text);">USN</th>
+                                <th style="text-align: center; padding: 10px; color: var(--light-text);">Answered</th>
+                                <th style="text-align: center; padding: 10px; color: var(--light-text);">Time Remaining</th>
+                                <th style="text-align: left; padding: 10px; color: var(--light-text);">Last Saved</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            submissions.forEach(submission => {
+                const timeRemaining = submission.timeRemaining ?
+                    `${Math.floor(submission.timeRemaining / 60)}m ${submission.timeRemaining % 60}s` :
+                    'N/A';
+                const lastSaved = new Date(submission.lastSavedAt).toLocaleString();
+
+                html += `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px; color: var(--light-text);">${submission.student.name}</td>
+                        <td style="padding: 10px; color: var(--secondary-text);">${submission.student.usn}</td>
+                        <td style="text-align: center; padding: 10px; color: var(--light-text);">
+                            <span class="badge badge-info">${submission.answeredQuestions} questions</span>
+                        </td>
+                        <td style="text-align: center; padding: 10px; color: var(--warning);">${timeRemaining}</td>
+                        <td style="padding: 10px; color: var(--secondary-text);">${lastSaved}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    <p style="color: var(--info); font-size: 14px;">
+                        <i class="fas fa-info-circle"></i>
+                        These students started the exam but left without submitting. Their answers are auto-saved and will be restored if they return.
+                    </p>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        }
     </script>
 </body>
 </html>

@@ -4,6 +4,8 @@ const Submission = require("./../models/SubmissionSchema")
 const { redirect } = require("express/lib/response")
 const MCQQuestion = require("./../models/MCQQuestion")
 const ExamCandidate = require("../models/ExamCandidate")
+const PartialSubmission = require("../models/PartialSubmission")
+const mongoose = require("mongoose")
 
 exports.getcontrol = async (req, res) => {
   if (req.isAuthenticated()) {
@@ -123,11 +125,39 @@ exports.getStartExam = async (req, res) => {
         .status(403)
         .send("You have already taken this exam and cannot attempt it again.")
     }
-    const exam = await Exam.findById(req.params.examId)
-      .populate("mcqQuestions")
+    // Find the exam and populate mcqQuestions in one query
+    let exam = await Exam.findById(req.params.examId)
+      .populate({
+        path: 'mcqQuestions',
+        model: 'MCQ'
+      });
 
     if (!exam) {
       return res.status(404).send("Exam not found")
+    }
+
+    // Log to debug
+    console.log("Exam loaded:", {
+      examId: exam._id,
+      name: exam.name,
+      questionType: exam.questionType,
+      mcqQuestionsCount: exam.mcqQuestions ? exam.mcqQuestions.length : 0,
+      firstMcqQuestion: exam.mcqQuestions && exam.mcqQuestions[0] ? exam.mcqQuestions[0] : "No questions"
+    });
+
+    // Extra validation for MCQ exams
+    if (exam.questionType === "mcq" && (!exam.mcqQuestions || exam.mcqQuestions.length === 0)) {
+      console.error("CRITICAL: MCQ exam has no questions populated!");
+      return res.status(500).send("Error: This exam has no questions. Please contact your administrator.");
+    }
+
+    // Convert to plain object and ensure questions are included
+    const examData = exam.toObject();
+
+    // Double-check questions are there
+    if (examData.questionType === "mcq" && (!examData.mcqQuestions || examData.mcqQuestions.length === 0)) {
+      console.error("WARNING: MCQ exam has no questions!");
+      // You might want to redirect or show an error here
     }
     if (currentTime < exam.scheduledAt) {
       // Assuming 'scheduleFrom' is the start time field
@@ -154,19 +184,150 @@ exports.getStartExam = async (req, res) => {
       )
     }
 
+    // Check for partial submission
+    const partialSubmission = await PartialSubmission.findOne({
+      exam: examId,
+      student: req.user._id
+    });
+
+    let savedAnswers = null;
+    let timeRemaining = null;
+
+    if (partialSubmission) {
+      // Convert partial submission to the format expected by frontend
+      savedAnswers = {
+        mcq: {},
+        coding: {}
+      };
+
+      // Convert MCQ answers
+      if (partialSubmission.mcqAnswers && partialSubmission.mcqAnswers.length > 0) {
+        partialSubmission.mcqAnswers.forEach(answer => {
+          savedAnswers.mcq[answer.questionId] = {
+            value: answer.selectedOption,
+            index: answer.selectedOption
+          };
+        });
+      }
+
+      // Convert coding answers
+      if (partialSubmission.codingAnswers && partialSubmission.codingAnswers.length > 0) {
+        partialSubmission.codingAnswers.forEach(answer => {
+          savedAnswers.coding[answer.questionId] = {
+            code: answer.code,
+            language: answer.language
+          };
+        });
+      }
+
+      timeRemaining = partialSubmission.timeRemaining;
+
+      console.log(`Found partial submission for student ${req.user._id} in exam ${examId}`);
+      console.log('Saved answers count:', Object.keys(savedAnswers.mcq).length, 'MCQ answers');
+      console.log('Time remaining:', timeRemaining, 'seconds');
+    }
+
     console.log()
     if (exam.questionType == "coding") {
-      res.render("test3", { user: req.user, exam })
+      res.render("test3", {
+        user: req.user,
+        exam: examData,
+        examId: exam._id,
+        studentId: req.user._id,
+        savedAnswers: savedAnswers,
+        timeRemaining: timeRemaining
+      })
     } else if (exam.questionType == "mcq") {
-      res.render("test3", { user: req.user, exam })
+      res.render("test3", {
+        user: req.user,
+        exam: examData,
+        examId: exam._id,
+        studentId: req.user._id,
+        savedAnswers: savedAnswers,
+        timeRemaining: timeRemaining
+      })
     } else {
-      res.render("test3", { user: req.user, exam })
+      res.render("test3", {
+        user: req.user,
+        exam: examData,
+        examId: exam._id,
+        studentId: req.user._id,
+        savedAnswers: savedAnswers,
+        timeRemaining: timeRemaining
+      })
     }
   } catch (error) {
     console.error(error)
     res.status(500).send("Internal Server Error")
   }
 }
+
+exports.savePartialSubmission = async (req, res) => {
+  try {
+    const { examId, answers, timeRemaining } = req.body;
+    const userId = req.user._id; // Get user ID from authenticated session
+
+    // Validate the data
+    if (!examId || !answers) {
+      return res.status(400).json({
+        error: "Missing required data for partial submission"
+      });
+    }
+
+    // Format MCQ answers properly
+    const mcqAnswers = [];
+    if (answers.mcq && Object.keys(answers.mcq).length > 0) {
+      for (const questionId in answers.mcq) {
+        const answerData = answers.mcq[questionId];
+        mcqAnswers.push({
+          questionId: questionId,
+          selectedOption: answerData.value || answerData.index?.toString() || answerData
+        });
+      }
+    }
+
+    // Format coding answers if present
+    const codingAnswers = [];
+    if (answers.coding && Object.keys(answers.coding).length > 0) {
+      for (const questionId in answers.coding) {
+        codingAnswers.push({
+          questionId: questionId,
+          code: answers.coding[questionId].code || '',
+          language: answers.coding[questionId].language || 'javascript'
+        });
+      }
+    }
+
+    // Save or update the partial submission
+    const partialSubmission = await PartialSubmission.findOneAndUpdate(
+      { exam: examId, student: userId },
+      {
+        exam: examId,
+        student: userId,
+        mcqAnswers: mcqAnswers,
+        codingAnswers: codingAnswers,
+        timeRemaining: timeRemaining || 0,
+        isPartial: true,
+        lastSavedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`Partial submission saved for student ${userId} in exam ${examId}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Answers auto-saved",
+      savedAt: partialSubmission.lastSavedAt
+    });
+
+  } catch (error) {
+    console.error("Error saving partial submission:", error);
+    res.status(500).json({
+      error: "Failed to save partial submission"
+    });
+  }
+};
 
 exports.postStartExam = async (req, res) => {
   try {
@@ -226,6 +387,12 @@ exports.postStartExam = async (req, res) => {
         { attendanceStatus: 'submitted' }
       )
     }
+
+    // Delete any partial submission since exam is now fully submitted
+    await PartialSubmission.findOneAndDelete({
+      exam: examId,
+      student: studentId
+    })
 
     // Return success response
     return res.status(200).json({

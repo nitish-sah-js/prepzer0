@@ -769,6 +769,9 @@ body.dark-theme .execution-output {
             <div class="header-title" id="examTitle">Loading exam...</div>
         </div>
         <div class="header-right">
+            <div class="auto-save-indicator" style="color: #10b981; font-size: 0.9rem; margin-right: 1rem;">
+                <span id="autoSaveIndicator"></span>
+            </div>
             <div class="timer-display" id="examTimer">
                 <i class="fas fa-clock"></i> --:--:--
             </div>
@@ -2199,7 +2202,7 @@ const examIntegrity = (function() {
      */
     function sendActivityPing() {
         if (!state.examStarted) return;
-        
+
         fetch(apiEndpoints.activityPing, {
             method: 'POST',
             headers: {
@@ -2208,7 +2211,8 @@ const examIntegrity = (function() {
             body: JSON.stringify({
                 examId: examInfo.examId,
                 userId: examInfo.userId,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                status: 'active'  // Explicitly set status as active
             })
         })
         .then(response => {
@@ -2317,17 +2321,137 @@ const examIntegrity = (function() {
 
 
     <script>
+    // Declare global variables once
+    const globalUserId = '<%= studentId %>';
+    const globalExamId = '<%= examId %>';
 
     // Store the exam data in localStorage when the page loads
     window.addEventListener('DOMContentLoaded', () => {
         // Assuming 'exam' is passed from the server to the EJS template
-        const examData = <%- JSON.stringify(exam) %>;
-          const mainContainer = document.querySelector('.main-container');
-            const header = document.querySelector('.header');
-             if (mainContainer && header) {
+        let examData;
+        try {
+            examData = <%- JSON.stringify(exam) %>;
+        } catch (e) {
+            console.error('Error parsing exam data:', e);
+            alert('Error loading exam data. Please refresh the page.');
+            return;
+        }
+
+        // Debug log to check exam data
+        console.log("Exam data received:", examData);
+        console.log("MCQ Questions count:", examData.mcqQuestions ? examData.mcqQuestions.length : 0);
+        console.log("MCQ Questions:", examData.mcqQuestions);
+
+        const mainContainer = document.querySelector('.main-container');
+        const header = document.querySelector('.header');
+
+        // Check if there are saved answers from a previous session
+        let savedAnswers = null;
+        let savedTimeRemaining = null;
+
+        try {
+            savedAnswers = <%- savedAnswers ? JSON.stringify(savedAnswers) : 'null' %>;
+            savedTimeRemaining = <%- timeRemaining ? timeRemaining : 'null' %>;
+        } catch (e) {
+            console.error('Error parsing saved data:', e);
+            savedAnswers = null;
+            savedTimeRemaining = null;
+        }
+
+        // If returning with saved answers, skip the start overlay and go directly to exam
+        if (savedAnswers && typeof savedAnswers === 'object' && Object.keys(savedAnswers).length > 0) {
+            console.log('Returning student with saved answers, skipping start overlay');
+            console.log('Saved answers:', savedAnswers);
+            console.log('Time remaining:', savedTimeRemaining);
+
+            // IMPORTANT: Set up localStorage FIRST for returning students
+            // Store the exam object
+            localStorage.setItem('currentExam', JSON.stringify(examData));
+
+            // Store questions for easier access
+            if (examData.questionType === "mcq") {
+                if (examData.mcqQuestions && examData.mcqQuestions.length > 0) {
+                    localStorage.setItem('mcqQuestions', JSON.stringify(examData.mcqQuestions));
+                    console.log("Restored MCQ questions for returning student:", examData.mcqQuestions.length);
+                } else {
+                    console.error('No MCQ questions found in exam data for returning student!');
+                    alert('Error: No questions found in this exam. Please contact your administrator.');
+                    window.location.href = '/dashboard';
+                    return;
+                }
+            }
+
+            // Preserve or set question index
+            if (!localStorage.getItem('currentQuestionIndex')) {
+                localStorage.setItem('currentQuestionIndex', '0');
+            }
+
+            // Restore saved answers to localStorage
+            localStorage.setItem('examAnswers', JSON.stringify(savedAnswers));
+
+            // Set up timer with saved time
+            if (examData.duration) {
+                let endTime;
+                if (savedTimeRemaining && savedTimeRemaining > 0) {
+                    endTime = new Date().getTime() + (savedTimeRemaining * 1000);
+                    console.log('Resuming exam with time remaining:', savedTimeRemaining, 'seconds');
+                } else {
+                    endTime = new Date().getTime() + (examData.duration * 60 * 1000);
+                }
+                localStorage.setItem('examEndTime', endTime.toString());
+                localStorage.setItem('examStartTime', new Date().getTime().toString());
+            }
+
+            // Show main container and header immediately
+            if (mainContainer && header) {
+                mainContainer.style.display = 'grid';
+                header.style.display = 'flex';
+            }
+
+            // Initialize exam directly
+            setTimeout(() => {
+                initializeExam();
+                startExamTimer();
+
+                // Start auto-save
+                if (localStorage.getItem('currentExam')) {
+                    startAutoSave();
+                }
+
+                // Initialize integrity monitoring
+                const integrity = examIntegrity.init({
+                    examId: globalExamId,
+                    userId: globalUserId,
+                    apiEndpoints: {
+                        integrityUpdate: '/update-integrity',
+                        activityPing: '/dashboard/see-active',
+                        saveImage: '/save-image'
+                    },
+                    config: {
+                        maxViolations: 999,
+                        maxRefreshes: 999,
+                        pingInterval: 30000,
+                        webcamCaptureInterval: 10000
+                    },
+                    startWebcam: document.getElementById('camneed')?.innerHTML === 'true'
+                });
+
+                examIntegrity.start();
+
+                // Show notification about restored answers
+                if (typeof examIntegrity !== 'undefined' && examIntegrity.showNotification) {
+                    examIntegrity.showNotification('Your previous answers have been restored. You can continue from where you left.');
+                }
+            }, 500);
+
+            return; // Exit early, don't create start overlay
+        }
+
+        // Only hide and create overlay for new exam attempts
+        if (mainContainer && header) {
         mainContainer.style.display = 'none';
         header.style.display = 'none';
-        
+
         // Create start exam overlay
         const startOverlay = document.createElement('div');
         startOverlay.className = 'start-exam-overlay';
@@ -2375,14 +2499,11 @@ const examIntegrity = (function() {
         
         document.body.appendChild(startOverlay);
 
-    const userId = document.getElementById('user').textContent;
-    const examId = document.getElementById('exam').textContent;
-    
-    // Initialize the module with configuration
-    const integrity = examIntegrity.init({
+    // Initialize the module with configuration using global variables (first init)
+    const integrity1 = examIntegrity.init({
         // Required exam information
-        examId: examId,
-        userId: userId,
+        examId: globalExamId,
+        userId: globalUserId,
         
         // Optional: Custom API endpoints
         apiEndpoints: {
@@ -2452,11 +2573,37 @@ if (examData) {
     if (startOverlay) {
         startOverlay.remove();
     }
-     
+
     // Show the main content
     const mainContainer = document.querySelector('.main-container');
     const header = document.querySelector('.header');
-    
+
+    // Initialize exam integrity monitoring with proper IDs
+    console.log('Initializing integrity monitoring with:', { userId: globalUserId, examId: globalExamId });
+
+    // Initialize the integrity module
+    const integrity = examIntegrity.init({
+        examId: globalExamId,
+        userId: globalUserId,
+        apiEndpoints: {
+            integrityUpdate: '/update-integrity',
+            activityPing: '/dashboard/see-active',
+            saveImage: '/save-image'
+        },
+        config: {
+            maxViolations: 999,
+            maxRefreshes: 999,
+            pingInterval: 20000,  // Send ping every 20 seconds
+            webcamCaptureInterval: 10000
+        },
+        startWebcam: document.getElementById('camneed')?.innerHTML === 'true'
+    });
+
+    // Start the integrity monitoring
+    examIntegrity.start();
+
+    console.log('Exam integrity monitoring started');
+
     if (mainContainer && header) {
         mainContainer.style.display = 'grid';
         header.style.display = 'flex';
@@ -2465,18 +2612,20 @@ if (examData) {
     // Initialize the exam
     initializeExam();
     
-    // Start the timer
-    const endTime = new Date().getTime() + (JSON.parse(localStorage.getItem('currentExam')).duration * 60 * 1000);
-    localStorage.setItem('examEndTime', endTime.toString());
+    // Start the timer only if not already set
+    if (!localStorage.getItem('examEndTime')) {
+        const examData = JSON.parse(localStorage.getItem('currentExam'));
+        if (examData && examData.duration) {
+            const endTime = new Date().getTime() + (examData.duration * 60 * 1000);
+            localStorage.setItem('examEndTime', endTime.toString());
+        }
+    }
 
-       const userId = document.getElementById('user').textContent;
-    const examId = document.getElementById('exam').textContent;
-    
-    // Initialize the module with configuration
-    const integrity = examIntegrity.init({
+    // Initialize the module with configuration using global variables
+    const integrity2 = examIntegrity.init({
         // Required exam information
-        examId: examId,
-        userId: userId,
+        examId: globalExamId,
+        userId: globalUserId,
         
         // Optional: Custom API endpoints
         apiEndpoints: {
@@ -2507,31 +2656,34 @@ if (examData) {
         // Optional: Start webcam automatically on init
         startWebcam: false
     });
-    
-        // Start the integrity monitoringsss
-        integrity.start();
-        
-        // Start webcam capture if not auto-started
-        if(document.getElementById('camneed').innerHTML == "true") {
-            integrity.startWebcamCapture();
+        // Start the integrity monitoring if available
+        if (typeof integrity !== 'undefined' && integrity.start) {
+            integrity.start();
         }
         
-        
-        // Enter fullscreen mode
-        integrity.enterFullscreen();
-        
-        // Prevent back button navigation
-        integrity.preventBackButton();
-        
-        // Show example notification
-        integrity.showNotification('Exam has started. Integrity monitoring is active.');
-        
-        // Hide the start button and show exam content
-        this.style.display = 'none';
-        document.getElementById('examContent').style.display = 'block';
+        // Start webcam capture if not auto-started
+        if(document.getElementById('camneed') && document.getElementById('camneed').innerHTML == "true") {
+            if (typeof integrity !== 'undefined' && integrity.startWebcamCapture) {
+                integrity.startWebcamCapture();
+            }
+        }
+        // Enter fullscreen mode if integrity is available
+        if (typeof integrity !== 'undefined' && integrity.enterFullscreen) {
+            integrity.enterFullscreen();
+        }
 
-    
-    startExamTimer();
+        // Prevent back button navigation if integrity is available
+        if (typeof integrity !== 'undefined' && integrity.preventBackButton) {
+            integrity.preventBackButton();
+        }
+
+        // Show example notification if integrity is available
+        if (typeof examIntegrity !== 'undefined' && examIntegrity.showNotification) {
+            examIntegrity.showNotification('Exam has started. Integrity monitoring is active.');
+        }
+
+        // Start the exam timer
+        startExamTimer();
 }
 const startExamStyles = `
     .start-exam-overlay {
@@ -2724,30 +2876,63 @@ const startExamStyles = `
 const styleElement = document.createElement('style');
 styleElement.textContent += startExamStyles;
 document.head.appendChild(styleElement);
-        // Store the entire exam object
-        localStorage.setItem('currentExam', JSON.stringify(examData));
-        
-        // Store questions separately for easier access
-        if (examData.questionType === "mcq") {
-            localStorage.setItem('mcqQuestions', JSON.stringify(examData.mcqQuestions));
+
+        // Only set up localStorage for NEW exam attempts (not returning students)
+        if (!savedAnswers || Object.keys(savedAnswers).length === 0) {
+            // Check if we're returning to an existing exam
+            const existingExam = localStorage.getItem('currentExam');
+            const existingQuestions = localStorage.getItem('mcqQuestions');
+            const existingIndex = localStorage.getItem('currentQuestionIndex');
+
+            // Store the entire exam object
+            localStorage.setItem('currentExam', JSON.stringify(examData));
+
+            // Store questions separately for easier access
+            if (examData.questionType === "mcq") {
+                if (!examData.mcqQuestions || examData.mcqQuestions.length === 0) {
+                    console.error("No MCQ questions found in exam data!");
+                    alert("Error: No questions found for this exam. Please contact your administrator.");
+                    window.location.href = '/dashboard';
+                    return;
+                }
+                localStorage.setItem('mcqQuestions', JSON.stringify(examData.mcqQuestions));
+                console.log("Stored MCQ questions:", examData.mcqQuestions.length);
+            }
+
+            // Only reset question index if not returning to an existing exam
+            if (!existingIndex || !existingExam || JSON.parse(existingExam)._id !== examData._id) {
+                localStorage.setItem('currentQuestionIndex', '0');
+            } else {
+                console.log('Preserving current question index:', existingIndex);
+            }
         }
-      
-        
-        // Initialize current question index
-        localStorage.setItem('currentQuestionIndex', '0');
-        
-        // Initialize timer if exam has duration
-        if (examData.duration) {
-            const endTime = new Date().getTime() + (examData.duration * 60 * 1000);
-            localStorage.setItem('examEndTime', endTime.toString());
+
+        // Only set up timer and answers for NEW exam attempts (returning students already have this set)
+        if (!savedAnswers || Object.keys(savedAnswers).length === 0) {
+            // Initialize timer if exam has duration
+            if (examData.duration) {
+                let endTime;
+
+                if (savedTimeRemaining && savedTimeRemaining > 0) {
+                    // Resume from saved time
+                    endTime = new Date().getTime() + (savedTimeRemaining * 1000);
+                    console.log('Resuming exam with time remaining:', savedTimeRemaining, 'seconds');
+                } else {
+                    // Start fresh timer
+                    endTime = new Date().getTime() + (examData.duration * 60 * 1000);
+                }
+
+                localStorage.setItem('examEndTime', endTime.toString());
+                localStorage.setItem('examStartTime', new Date().getTime().toString());
+            }
+
+            // Initialize empty answers object for new attempt
+            const emptyAnswers = {
+                mcq: {},
+                coding: {}
+            };
+            localStorage.setItem('examAnswers', JSON.stringify(emptyAnswers));
         }
-        
-        // Initialize empty answers object
-        const emptyAnswers = {
-            mcq: {},
-            coding: {}
-        };
-        localStorage.setItem('examAnswers', JSON.stringify(emptyAnswers));
         
         // Set up dark mode toggle
         setupDarkModeToggle();
@@ -2792,19 +2977,32 @@ document.head.appendChild(styleElement);
     function initializeExam() {
         // Get the exam data from localStorage
         const examData = JSON.parse(localStorage.getItem('currentExam'));
+
+        if (!examData) {
+            console.error('No exam data found in localStorage!');
+            alert('Error: Exam data not found. Please refresh the page.');
+            return;
+        }
+
         const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex')) || 0;
-        
+
         // Display exam information
-        document.getElementById('examTitle').textContent = examData.name;
-        document.getElementById('examDuration').textContent = `${examData.duration} minutes`;
-        
+        if (document.getElementById('examTitle')) {
+            document.getElementById('examTitle').textContent = examData.name || 'Exam';
+        }
+        if (document.getElementById('examDuration')) {
+            document.getElementById('examDuration').textContent = `${examData.duration || '--'} minutes`;
+        }
+
         // Display exam type
         let examType = '';
         if (examData.questionType === "mcq") {
             examType = 'Multiple Choice';
-        } 
-       
-        document.getElementById('examType').textContent = examType;
+        }
+
+        if (document.getElementById('examType')) {
+            document.getElementById('examType').textContent = examType;
+        }
         
         // Determine which question to load first
         loadQuestion(currentIndex);
@@ -3329,40 +3527,150 @@ function updateQuestionNavigation(currentIndex) {
 }
 
     // Function to start exam timer
+    let examTimerInterval = null;
+
     function startExamTimer() {
+        // Clear any existing timer
+        if (examTimerInterval) {
+            clearInterval(examTimerInterval);
+        }
+
         const endTimeStr = localStorage.getItem('examEndTime');
-        if (!endTimeStr) return;
-        
+        if (!endTimeStr) {
+            console.warn('No exam end time found');
+            return;
+        }
+
         const endTime = parseInt(endTimeStr);
         const timerDisplay = document.getElementById('examTimer');
-        
-        const timer = setInterval(() => {
+
+        // Function to update timer display
+        const updateTimer = () => {
             const now = new Date().getTime();
             const timeLeft = endTime - now;
-            
+
             if (timeLeft <= 0) {
-                clearInterval(timer);
+                clearInterval(examTimerInterval);
                 timerDisplay.innerHTML = '<i class="fas fa-clock"></i> Time\'s up!';
                 timerDisplay.classList.add('timer-critical');
-                submitExam(); // Auto-submit when time's up
+
+                // Auto-submit after a brief delay
+                setTimeout(() => {
+                    submitExam();
+                }, 1000);
                 return;
             }
-            
+
             // Calculate time left
             const hours = Math.floor(timeLeft / (1000 * 60 * 60));
             const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-            
+
             // Format time and update display
             timerDisplay.innerHTML = `<i class="fas fa-clock"></i> ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
+
             // Add warning class when less than 5 minutes left
             if (timeLeft < 5 * 60 * 1000) {
                 timerDisplay.classList.add('timer-critical');
+            } else {
+                timerDisplay.classList.remove('timer-critical');
             }
-        }, 1000);
+        };
+
+        // Update immediately
+        updateTimer();
+
+        // Then update every second
+        examTimerInterval = setInterval(updateTimer, 1000);
     }
 
+    // Auto-save functionality
+    let autoSaveTimer = null;
+    let lastSaveTime = Date.now();
+
+    function calculateTimeRemaining() {
+        const endTimeStr = localStorage.getItem('examEndTime');
+        if (!endTimeStr) return null;
+
+        const endTime = parseInt(endTimeStr);
+        const now = new Date().getTime();
+        const timeLeft = Math.max(0, endTime - now);
+
+        return Math.floor(timeLeft / 1000); // Return time in seconds
+    }
+
+    function autoSaveAnswers() {
+        const examData = JSON.parse(localStorage.getItem('currentExam'));
+        const answers = JSON.parse(localStorage.getItem('examAnswers'));
+
+        if (!examData || !answers) {
+            console.log('No exam data or answers to save');
+            return;
+        }
+
+        const timeRemaining = calculateTimeRemaining();
+
+        // Prepare save data
+        const saveData = {
+            examId: examData._id,
+            answers: answers,
+            timeRemaining: timeRemaining
+        };
+
+        // Send to server
+        fetch('/dashboard/save-partial', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(saveData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                lastSaveTime = Date.now();
+                console.log('Auto-save successful:', data.message);
+
+                // Update auto-save indicator if exists
+                const saveIndicator = document.getElementById('autoSaveIndicator');
+                if (saveIndicator) {
+                    saveIndicator.textContent = 'Saved';
+                    saveIndicator.style.color = '#10b981';
+                    setTimeout(() => {
+                        saveIndicator.textContent = '';
+                    }, 2000);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Auto-save failed:', error);
+        });
+    }
+
+    // Schedule auto-save every 30 seconds
+    function startAutoSave() {
+        // Initial save after 5 seconds
+        setTimeout(autoSaveAnswers, 5000);
+
+        // Then save every 30 seconds
+        autoSaveTimer = setInterval(() => {
+            autoSaveAnswers();
+        }, 30000); // 30 seconds
+    }
+
+    // Save before page unload
+    window.addEventListener('beforeunload', (event) => {
+        // Only save if there's been activity since last save
+        const timeSinceLastSave = Date.now() - lastSaveTime;
+        if (timeSinceLastSave > 5000) { // More than 5 seconds since last save
+            autoSaveAnswers();
+        }
+    });
+
+    // Start auto-save when exam starts
+    if (localStorage.getItem('currentExam')) {
+        startAutoSave();
+    }
 
 function submitExam() {
     const examData = JSON.parse(localStorage.getItem('currentExam'));
@@ -3405,39 +3713,12 @@ function submitExam() {
        
     });
     
-    // Get integrity data
-    const userId = document.getElementById('user').textContent;
-    const examId = document.getElementById('exam').textContent;
-    
-    const integrity = examIntegrity.init({
-        examId: examId,
-        userId: userId,
-        apiEndpoints: {
-            integrityUpdate: '/update-integrity',
-            activityPing: '/dashboard/see-active',
-            saveImage: '/save-image'
-        },
-        config: {
-            maxViolations: 5,
-            maxRefreshes: 3,
-            pingInterval: 30000,
-            webcamCaptureInterval: 10000
-        },
-        onAutoSubmit: function(reason) {
-            console.log(`Auto-submitting exam due to: ${reason}`);
-            document.getElementById('examForm').submit();
-            setTimeout(() => {
-                window.location.href = '/exam-complete';
-            }, 1000);
-        },
-        startWebcam: false
-    });
-    
-    const violations = integrity.getViolationCounts();
+    // Get integrity violation data
+    const violations = examIntegrity.getViolationCounts();
     console.log('Final violation counts:', violations);
     
     // Stop integrity monitoring
-    integrity.stop();
+    examIntegrity.stop();
     
     // Send submission to server
     fetch('/dashboard/submit-test', {
@@ -3823,6 +4104,142 @@ function clearExamData() {
         }
     `;
     document.head.appendChild(styleElement);
+
+    // Prevent accidental page close/refresh during exam
+    let examInProgress = true;
+    let isSubmitting = false;
+
+    // Function to collect current answers from the exam
+    function collectCurrentAnswers() {
+        const answers = JSON.parse(localStorage.getItem('examAnswers') || '{"mcq": {}, "coding": {}}');
+        const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex')) || 0;
+        const examData = JSON.parse(localStorage.getItem('currentExam'));
+
+        if (!examData) return answers;
+
+        // Collect MCQ answers from form inputs
+        if (examData.questionType === "mcq" || examData.questionType === "mcq&coding") {
+            const mcqQuestions = JSON.parse(localStorage.getItem('mcqQuestions') || '[]');
+
+            // Get all radio buttons for MCQ questions
+            mcqQuestions.forEach((question, index) => {
+                const selectedRadio = document.querySelector(`input[name="q${index}"]:checked`);
+                if (selectedRadio) {
+                    answers.mcq[question._id] = selectedRadio.value;
+                }
+            });
+        }
+
+        // Save to localStorage as well
+        localStorage.setItem('examAnswers', JSON.stringify(answers));
+
+        return answers;
+    }
+
+    // Function to save partial submission (answers so far)
+    function savePartialSubmission() {
+        const answers = collectCurrentAnswers();
+        const examData = JSON.parse(localStorage.getItem('currentExam'));
+
+        if (!examData) return;
+
+        const partialSubmission = {
+            examId: globalExamId,
+            userId: globalUserId,
+            answers: answers,
+            isPartial: true, // Mark this as a partial submission
+            leftAt: new Date().toISOString()
+        };
+
+        // Use sendBeacon for reliable delivery
+        const data = JSON.stringify(partialSubmission);
+
+        if (navigator.sendBeacon) {
+            const blob = new Blob([data], { type: 'application/json' });
+            navigator.sendBeacon('/dashboard/save-partial', blob);
+        } else {
+            // Fallback
+            fetch('/dashboard/save-partial', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: data,
+                keepalive: true
+            }).catch(err => console.log('Failed to save partial submission:', err));
+        }
+    }
+
+    // Function to mark student as left the exam
+    function markAsLeftExam() {
+        if (!examInProgress || isSubmitting) return;
+
+        // First, save the partial submission
+        savePartialSubmission();
+
+        // Then mark as left
+        const data = JSON.stringify({ examId: globalExamId, userId: globalUserId });
+
+        if (navigator.sendBeacon) {
+            const blob = new Blob([data], { type: 'application/json' });
+            navigator.sendBeacon('/dashboard/leave-exam', blob);
+        } else {
+            // Fallback for older browsers
+            fetch('/dashboard/leave-exam', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: data,
+                keepalive: true // Keeps the request alive even after page unload
+            }).catch(err => console.log('Failed to mark as left:', err));
+        }
+    }
+
+    window.addEventListener('beforeunload', function (e) {
+        // Only show confirmation if exam is in progress and not submitting
+        if (examInProgress && !isSubmitting) {
+            // Mark student as left when they try to leave
+            markAsLeftExam();
+
+            // Modern browsers
+            e.preventDefault();
+            // Chrome requires returnValue to be set
+            e.returnValue = '';
+            // Some browsers show this message (most show a generic message)
+            return 'Are you sure you want to leave? Your exam progress may be lost.';
+        }
+    });
+
+    // Also track when the page visibility changes (tab switch, minimize, etc.)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && examInProgress && !isSubmitting) {
+            // Mark as inactive when tab is hidden
+            fetch('/dashboard/see-active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    examId: globalExamId,
+                    userId: globalUserId,
+                    timestamp: new Date().toISOString(),
+                    status: 'inactive'
+                })
+            }).catch(err => console.log('Failed to update status:', err));
+        }
+    });
+
+    // Set flag when submitting to avoid confirmation on legitimate submission
+    const originalSubmitExam = window.submitExam;
+    if (typeof originalSubmitExam === 'function') {
+        window.submitExam = function() {
+            isSubmitting = true;
+            return originalSubmitExam.apply(this, arguments);
+        };
+    }
+
+    // Also check for form submission
+    const examForm = document.querySelector('form');
+    if (examForm) {
+        examForm.addEventListener('submit', function() {
+            isSubmitting = true;
+        });
+    }
 
     </script>
 </body>

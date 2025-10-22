@@ -920,6 +920,51 @@ html >
                 messageDiv.style.color = 'white';
             }
         }
+
+        // Prevent accidental page close when working on admin tasks
+        let hasUnsavedChanges = false;
+        let isNavigatingAway = false;
+
+        window.addEventListener('beforeunload', function (e) {
+            // Show confirmation if there are unsaved changes and not intentionally navigating
+            if (hasUnsavedChanges && !isNavigatingAway) {
+                e.preventDefault();
+                e.returnValue = '';
+                return 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
+
+        // Track form changes to detect unsaved changes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Track input changes in forms
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('change', function() {
+                    hasUnsavedChanges = true;
+                });
+
+                form.addEventListener('input', function() {
+                    hasUnsavedChanges = true;
+                });
+
+                // Clear flag on successful form submission
+                form.addEventListener('submit', function() {
+                    isNavigatingAway = true;
+                    hasUnsavedChanges = false;
+                });
+            });
+
+            // Clear flag when clicking navigation links
+            const navLinks = document.querySelectorAll('a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    // Only clear if it's not a modal or dropdown trigger
+                    if (!this.hasAttribute('data-bs-toggle') && !this.classList.contains('dropdown-toggle')) {
+                        isNavigatingAway = true;
+                    }
+                });
+            });
+        });
     </script>
 
     <!-- Semester Upgrade Modal -->

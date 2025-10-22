@@ -2,17 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Quick Reference
+## Quick Reference Commands
 
 ```bash
-# Start development
-npm start                    # Start with nodemon (auto-reload)
-npm run build:css           # Build and watch Tailwind CSS
+# Development
+npm start                                     # Start with nodemon (auto-reload)
+npm run build:css                            # Build and watch Tailwind CSS
 
-# Database management
-npm run seed:departments    # Initialize department data
-npm run cleanup:sessions    # Clean orphaned sessions
-npm run audit:database      # Audit database integrity
+# Database Management
+npm run seed:departments                     # Initialize department data
+npm run cleanup:sessions                     # Clean orphaned sessions
+npm run audit:database                       # Audit database integrity
+node scripts/create-admin.js                 # Create admin user
+node scripts/populate-students.js            # Populate test data
+node scripts/recalculate-scores.js          # Fix submission scores
 
 # Testing
 cd test && python create_test_accounts.py    # Create test accounts
@@ -21,508 +24,406 @@ cd test && python test_chrome.py             # Run Selenium tests
 
 ## Application Overview
 
-PrepZer0 is an online examination platform built with Node.js, Express, and MongoDB. It features MCQ-based exams with real-time integrity monitoring, multi-role user management (students, teachers, admins), and single-device login enforcement for exam security.
+PrepZer0 is an online MCQ examination platform built with Node.js/Express featuring real-time integrity monitoring, single-device login enforcement, and multi-role user management.
 
 **Core Features**:
 - MCQ exam creation with department/semester targeting or Excel candidate upload
 - Real-time integrity monitoring with camera capture and behavior tracking
 - Single-device login enforcement for students during exams
-- Automated scoring and assessment reports
+- Automated scoring with instant results
 - Dynamic department management system
-- Email notifications and exam reminders
-- Bulk student account creation via CSV upload
-- Secure file uploads (CSV, Excel, Images) with AWS S3 integration
+- Exam reminder scheduling (15 minutes before)
+- Bulk student account creation via CSV
+- Secure file uploads with AWS S3 integration
 
-## Architecture Overview
+## Architecture & Request Flow
 
-### Application Entry Points
 ```
-server.js (HTTP server, exam reminder scheduling)
-  └─→ app.js (Express configuration, middleware, routes, S3 setup)
+server.js → app.js → middleware chain → routes → controllers → models → database
+                ↓
+         Session Validator (single-device enforcement)
+                ↓
+         Route-specific middleware (auth checks)
 ```
 
-**Key Directories**:
-- `/controllers/` - Business logic (16 controllers)
-- `/routes/` - Express route handlers (7 route files)
-- `/models/` - Mongoose schemas (13 models)
-- `/views/` - EJS templates (40+ view files)
-- `/middleware/` - Custom middleware (auth, session validation)
-- `/utils/` - Helper functions (semester calculator, email, S3 uploader)
-- `/config/` - Configuration (upload settings)
-- `/scripts/` - Database management utilities
-- `/public/` - Static assets (CSS, JS, images)
-- `/templates/` - CSV templates for bulk uploads
+**Entry Points**:
+- `server.js` - HTTP server, exam reminder scheduling on startup
+- `app.js` - Express configuration, middleware setup, route mounting, S3 config
 
-### Critical Models
+## Critical Database Models
 
-**User** (`usermodel.js`):
-- Student/teacher/admin roles with USN-based identification
-- Stores `currentSessionId` for single-device enforcement
-- Uses passport-local-mongoose for authentication
-- Has `CurrentSemester` virtual field that auto-calculates from USN
+### User (usermodel.js)
+```javascript
+{
+  email, USN, fname, lname,
+  usertype: 'student'|'teacher'|'admin',
+  currentSessionId,        // Single-device enforcement
+  currentSemesterOverride, // Manual semester override
+  managedDepartments[],    // Teacher's exam creation permissions
+  CurrentSemester          // Virtual field (auto-calculated from USN)
+}
+```
 
-**Exam** (`Exam.js`):
-- Dynamic validation: departments/semester required OR Excel candidates allowed
-- Pre-save hooks enforce configuration validity
+### Exam (Exam.js)
+Pre-save validation: Must have (departments + semester) OR Excel candidates, never both.
+```javascript
+{
+  departments[], semester,       // Target selection
+  excelCandidatesPresent: bool,  // Alternative targeting
+  mcqQuestions[],                 // Questions array
+  scheduledAt, scheduleTill,      // Time window
+  createdBy                       // Teacher reference
+}
+```
 
-**ExamCandidate** (`ExamCandidate.js`):
-- Links students to exams via USN
-- Note: `source` field (e.g., 'excel') used in code but not in schema (added dynamically)
+### Submission (SubmissionSchema.js)
+Auto-scoring on submission: `score = Σ(correctAnswer === selectedOption ? marks : 0)`
 
-**Submission** (`SubmissionSchema.js`):
-- Auto-calculated scores on submission
-- References User and Exam models
+### Integrity (Integrity.js)
+Tracks: tabChanges, mouseOuts, fullscreenExits, copyAttempts, pasteAttempts, focusChanges
 
-**Integrity** (`Integrity.js`):
-- Tracks exam violations (tab changes, mouse exits, copy/paste attempts, etc.)
-- Stores violation counts and last event metadata
-
-**ActiveSession** (`ActiveSession.js`):
-- Real-time activity tracking during exams
-- Collection name: 'activitytrackers'
-
-**MCQ** (`MCQschema.js`) vs **MCQQuestion** (`MCQQuestion.js`):
-- `MCQ`: Questions linked to specific exams (4 options, marks, correct answer)
-- `MCQQuestion`: Reusable question bank with classification and difficulty levels
-- Collection name for question bank: 'allmcqquestions'
-
-**Department** (`Department.js`):
-- Dynamic department management (replaces hardcoded enums)
-- Stores: code (unique), name, fullName, description, active status
+### ActiveSession (ActiveSession.js)
+Collection name: `activitytrackers` - Real-time exam activity tracking with ping history
 
 ## Authentication & Session Management
 
-### Passport Configuration (app.js:113-162)
-- Local strategy using email as username
-- Three user types: student, teacher, admin
-- Teacher requirements: `active: true` (email verified) AND `userallowed: true` (admin approved)
-- Admin requirement: `admin_access: true`
+### Passport Local Strategy (app.js:113-162)
+- Username field: `email`
+- Teacher login requires: `active: true` AND `userallowed: true`
+- Admin requires: `admin_access: true`
+- Students: `userallowed: true` only
 
-### Session Configuration (app.js:71-91)
-- MongoDB store with connect-mongo
-- 24-hour session expiry
-- Session encryption with `SESSION_CRYPTO_SECRET`
-- Secure cookies (httpOnly, sameSite: lax)
-- touchAfter optimization (24-hour update throttle)
-
-### Single-Device Login Enforcement
-Implementation in `middleware/sessionValidator.js`:
-1. On login: store `req.sessionID` in `user.currentSessionId` (authenticatecontroller.js:106)
-2. During exam: middleware checks if `user.currentSessionId === req.sessionID`
-3. On mismatch: force logout with session regeneration
-4. On logout: clear `currentSessionId` for students only (app.js:195-206)
-5. Applies to: `/dashboard/test/*`, `/api/check-session`
-6. Excluded: `/authenticate/login`, `/authenticate/signup`, `/logout`
-7. Teachers/admins bypass this check (multi-device login allowed)
+### Single-Device Login Enforcement (middleware/sessionValidator.js)
+**IMPORTANT**: Only enforces for STUDENTS on EXAM routes (`/dashboard/test/*`)
+- Stores `req.sessionID` in `user.currentSessionId` on login
+- Compares on each request, force logout on mismatch
+- Teachers/admins bypass (multi-device allowed)
 
 ## Exam System Flow
 
-### Student Exam Flow
 ```
-Start Exam (GET /dashboard/start-test/:examId)
-  ↓
-sessionValidator checks currentSessionId match
-  ↓
-Check eligibility: (department AND semester match) OR (ExamCandidate entry exists)
-  ↓
-Render test3.ejs with questions
-  ↓
-Client-side integrity monitoring starts
-  ↓
-Periodic pings to /dashboard/see-active (update ActiveSession)
-  ↓
-Submit (POST /dashboard/submit-test)
-  ↓
-Auto-calculate MCQ scores (correct answers × marks)
-  ↓
-Save Submission document
-  ↓
-Redirect to dashboard
-```
-
-### Exam Reminder Scheduling (server.js:12)
-```
-Server startup
-  ↓
-scheduleAllExamReminders() (utils/examreminder.js)
-  ↓
-Find all future non-draft exams
-  ↓
-Schedule job 15 minutes before each exam's scheduledAt time
-  ↓
-At trigger: find eligible students, send email via Nodemailer
-```
-
-### Scoring Logic (dashboardcontroller.js)
-```javascript
-// MCQ auto-scoring on submission
-for each answer submitted:
-  if (selectedOption === question.correctAnswer) {
-    totalScore += question.marks
-  }
-// Score stored in Submission immediately
+Student Dashboard → Check eligibility → Start exam → Integrity monitoring
+    ↓                                       ↓              ↓
+Auto-eligible if:                    test3.ejs view   Client tracks events
+- dept matches AND                   Questions shown  Server records violations
+- semester matches                        ↓              ↓
+OR ExamCandidate exists             Submit answers   Camera captures → S3
+                                          ↓
+                                    Auto-score MCQs
+                                          ↓
+                                    Save Submission
 ```
 
 ## File Upload & S3 Integration
 
-### Upload Configuration (config/upload.js)
-Three upload types with validation:
-1. **CSV Upload** (`csvUpload`): MCQ questions, 5MB max, MIME/extension validation
-2. **Image Upload** (`imageUpload`): Integrity monitoring, 2MB max, memory storage, magic bytes verification
-3. **Excel Upload** (`excelUpload`): Exam candidates, 10MB max, .xlsx/.xls validation
+### Three Upload Types (config/upload.js)
+1. **CSV**: MCQ questions, 5MB max, disk storage
+2. **Images**: Integrity monitoring, 2MB max, memory → S3
+3. **Excel**: Exam candidates, 10MB max, memory storage
 
-### Image Upload Security (app.js:300-395)
-- Magic bytes verification (checks file signatures: PNG, JPEG, GIF, WebP)
-- Secure random filename generation using crypto
-- Server-side encryption (AES256) for S3 storage
-- Stored at: `integrity/{usn}/{examId}/captured-{random}.{ext}`
-- ObjectId format validation for userId/examId
-
-### S3 Configuration (app.js:18-31)
-- AWS SDK v3 (@aws-sdk/client-s3)
-- Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME
-
-## Integrity Monitoring
-
-Implementation in `views/test3.ejs` (3,829 lines):
-- **Client-side tracking**: tab changes, mouse exits, focus changes, copy/paste attempts, fullscreen exits
-- **Server endpoint**: POST `/update-integrity` (app.js:259-298)
-- **Event types**: tabChanges, mouseOuts, fullscreenExits, copyAttempts, pasteAttempts, focusChanges
-- **Camera capture**: periodic screenshots uploaded to S3 via POST `/save-image`
-- **Activity pings**: real-time status updates to `/dashboard/see-active`
-
-## Key Routes & Endpoints
-
-### Route Files
-- `/` - Home routes (routes/home.js)
-- `/dashboard` - Student dashboard and exam interface (routes/dashboard.js)
-- `/admin` - Admin panel for exam management (routes/admin.js)
-- `/authenticate` - Login/logout functionality (routes/authenticate.js)
-- `/profile` - User profile management (routes/profile.js)
-- `/supadmin` - Super admin functions (routes/supadmin.js)
-- `/user` - User authentication routes (routes/userauth.js)
-
-### Important Admin Routes
-- `/admin/create_exam` - Create new exam
-- `/admin/exam/:examId` - Edit exam
-- `/admin/exam/candidates/:examId` - View candidates and submissions
-- `/admin/exam/:examId/database` - Select questions from question bank
-- `/admin/addbulckstudent` - Bulk student upload interface
-- `/admin/download-student-template` - Download CSV template
-- `/admin/departments` - Department management
-
-### Global Routes (app.js)
-- `/logout` - Clears session and currentSessionId for students
-- `/api/check-session` - Validates current session for single-device enforcement
-- `/update-integrity` - Records integrity violations during exams
-- `/save-image` - Uploads integrity monitoring images to S3
-
-## USN Format & Semester Calculation
-
-### USN Structure
-Format: `Location + Year + Department + RollNumber`
-Example: `1BY22CS001` = `BY` + `22` + `CS` + `001`
-
-### Automatic Semester Calculation
+### Image Security (app.js:300-395)
 ```javascript
-// Example: USN "1BY22CS001" → year = 22 → admission year = 2022
-admissionYear = 2000 + parseInt(usnYear)
-yearsSinceAdmission = currentYear - admissionYear
-baseSemester = yearsSinceAdmission * 2
-
-// January-June: even semester (2, 4, 6, 8)
-// July-December: odd semester (1, 3, 5, 7)
-if (currentMonth 1-6): semester = baseSemester + 2
-else: semester = baseSemester + 1
+// Magic bytes verification
+PNG: 89504e47, JPEG: ffd8ff, GIF: 47494638, WebP: 52494646
+// S3 path: integrity/{usn}/{examId}/captured-{random}.{ext}
+// Server-side encryption: AES256
 ```
 
-**Implementation** (utils/semesterCalculator.js):
-- User model has `CurrentSemester` virtual field
-- Auto-calculates from `Year` field in USN
-- Virtual included in JSON output: `toJSON: { virtuals: true }`
-- Access via `student.CurrentSemester` in controllers
-- Falls back to stored `Semester` field when Year not available
+## USN & Semester Calculation
+
+### USN Format: `LocationYearDepartmentRollNumber`
+Example: `1BY22CS001` = BY (location) + 22 (year) + CS (dept) + 001 (roll)
+
+### Auto Semester (utils/semesterCalculator.js)
+```javascript
+admissionYear = 2000 + parseInt(usnYear)  // 22 → 2022
+yearsSinceAdmission = currentYear - admissionYear
+baseSemester = yearsSinceAdmission * 2
+// Jan-Jun: even semester (+2), Jul-Dec: odd semester (+1)
+semester = (month <= 6) ? baseSemester + 2 : baseSemester + 1
+```
 
 ## Department Management
 
-Default departments (seed with `npm run seed:departments`):
-- CS - Computer Science
-- IS - Information Science
-- EC - Electronics & Communication
-- ET - Electronics & Telecommunication
-- AI - Artificial Intelligence
-- CV - Civil Engineering
-- EE - Electrical Engineering
-- AD - Automation & Robotics
+Default departments (code → name):
+- cs → Computer Science
+- is → Information Science
+- ec → Electronics & Communication
+- et → Electronics & Telecommunication
+- ai → Artificial Intelligence
+- cv → Civil Engineering
+- ee → Electrical Engineering
+- ad → Automation & Robotics
 
-**Dynamic Management**:
-- Admin interface at `/admin/departments`
-- CRUD operations via `departmentcontroller.js`
-- User and Exam schemas no longer use hardcoded enums
-- Teachers can be assigned to manage specific departments via `managedDepartments` field
+Seed with: `npm run seed:departments`
 
 ## MCQ Question System
 
-### Question Requirements
-- Exactly 4 options required per question (enforced in schema)
-- One correct answer (string matching one of the options)
-- Difficulty levels: easy, medium, hard
-- Classifications (enum): Data Structures, Algorithms, DBMS, Object-Oriented Programming, Networking, Operating Systems, Software Engineering, Mathematics, Artificial Intelligence, Machine Learning, UNIX, other
+### Schema Requirements
+- Exactly 4 options per question
+- One correct answer (string matching an option)
+- Difficulty: easy, medium, hard
 
-### Dynamic Classification Management
-In question database selection page (`/admin/exam/{examId}/database`):
-- **Add Classification Button**: Allows adding custom classifications on-the-fly
-- **Modal Interface**: Clean UI for entering new classification names
-- **Real-time Updates**: New classifications appear in filter dropdown and random selection
-- **Duplicate Prevention**: Checks for existing classifications before adding
-- **Session Persistence**: Custom classifications stored in-memory during session
+### Dynamic Classification (views/database_questions.ejs)
+- Add custom classifications via modal UI
+- POST `/admin/exam/{examId}/database/classification/add`
+- Stored in-memory during session
 
-**Implementation** (views/database_questions.ejs):
-- Frontend: JavaScript event handlers with modal management (lines 448-595)
-- API Endpoint: POST `/admin/exam/{examId}/database/classification/add`
-- Controller: `dbQuestionsController.addClassification()` (lines 388-423)
-- EJS rendering: `<%- JSON.stringify(classifications || []) %>` for safe rendering
-- Proper event propagation prevention and comprehensive error handling
+## Bulk Student Upload
 
-## Bulk Student Account Creation
-
-Route: `/admin/addbulckstudent` (GET/POST)
-
-**Features**:
-- Upload CSV with student details: email, usn, department, semester (required) + fname, lname, phone, imageurl (optional)
-- Set common password for all uploaded students
-- Auto-approval: `userallowed: true`, `active: true` (no email verification needed)
-- Automatic year extraction from USN (characters 4-5)
-- Duplicate detection (skips existing emails/USNs)
-- Detailed error reporting for invalid rows
-- Download template at `/admin/download-student-template`
-
-**CSV Format**:
+### CSV Format (required fields)
 ```csv
 email,usn,department,semester,fname,lname,phone,imageurl
 student1@example.com,1BY22CS001,cs,1,John,Doe,9876543210,
 ```
 
-**Validation**:
-- Email: valid format, unique
-- USN: valid format, unique
-- Department: lowercase, must match existing department code
-- Semester: integer 1-8
-- Phone (optional): 10 digits
-- Password: minimum 6 characters (shared across all students)
+### Features
+- Common password for all uploaded students
+- Auto-approval: `userallowed: true`, `active: true`
+- Year auto-extracted from USN
+- Duplicate detection and detailed error reporting
 
-**Security**: All passwords hashed via bcrypt (passport-local-mongoose). Students should change password after first login.
+Route: `/admin/addbulckstudent`
 
-See `BULK_STUDENT_UPLOAD_FEATURE.md` for detailed documentation.
+## Key Controllers
 
-## Email System
+| Controller | Primary Responsibilities |
+|------------|-------------------------|
+| authenticatecontroller | Login, signup, session tracking, password reset |
+| dashboardcontroller | Student exam interface, submission, auto-scoring |
+| admincontroller | Teacher/admin dashboard, student management |
+| examcontroller | Exam CRUD, validation, candidate management |
+| dbQuestionsController | Question bank, dynamic classification |
+| bulkStudentController | CSV student upload |
+| activeSessionController | Real-time activity tracking |
 
-**Configuration** (utils/email.js):
-- Nodemailer with GoDaddy SMTP (smtpout.secureserver.net:465)
-- Templates in `utils/emailTemplates.js`
-- Account verification emails (signup)
-- Exam reminder emails (scheduled 15 minutes before exam)
+## Integrity Monitoring (views/test3.ejs)
 
-**Environment Variables**:
-```
-EMAIL_HOST=smtpout.secureserver.net
-EMAIL_PORT=465
-EMAIL_USER=services@prepzer0.co.in
-EMAIL_PASSWORD=...
-EMAIL_FROM=services@prepzer0.co.in
-```
+Client-side events → POST `/update-integrity`:
+- Tab changes, window focus loss
+- Copy/paste attempts
+- Fullscreen exit, mouse exit
+- Camera captures → POST `/save-image` → S3
 
-## Controllers & Responsibilities
-
-- **authenticatecontroller.js**: Login, signup, email verification, session ID tracking, password reset
-- **dashboardcontroller.js**: Student dashboard, exam rendering, answer submission, MCQ auto-scoring, eligibility checks
-- **admincontroller.js**: Admin/teacher dashboard, student management, candidate viewing, exam reports, user approval
-- **examcontroller.js**: Create/edit exams, validation logic, Excel candidate upload, department-based selection, individual candidate management
-- **questioncontroller.js**: Add/edit/delete MCQ questions with validation
-- **activeSessionController.js**: Track real-time activity pings, update ActiveSession status
-- **reportController.js**: Generate assessment reports with detailed analysis
-- **departmentcontroller.js**: CRUD operations for departments
-- **bulkStudentController.js**: Bulk student account creation via CSV upload
-- **allmcqcontroller.js**: MCQ question bank management
-- **dbQuestionsController.js**: Database question management and classification handling
-- **addMCQQuestions.js**: Bulk MCQ question import from CSV
-- **profilecontroller.js**: User profile management and updates
-- **homecontroller.js**: Landing page and public routes
-- **supadmin.js**: Super admin functions (user management, system-wide operations)
-- **userauthcontroller.js**: Additional user authentication utilities
-
-## Middleware Chain (app.js)
-
-Applied in this order:
-1. Security: `mongoSanitize()`, `hpp()`, `xss()`
-2. Body parsers (100MB limit for JSON and urlencoded)
-3. Session configuration with MongoDB store
-4. Flash messages for user feedback
-5. Passport initialization and session
-6. **Single-device session validator** (`validateSingleSession`) - globally applied
-
-## Environment Variables Required
+## Environment Variables
 
 ```env
-PORT=80
-NODE_ENV=development
+# MongoDB
 MONGODB_URI=mongodb+srv://...
 DB_NAME=codingplatform
+
+# Session
 SESSION_SECRET=...
 SESSION_CRYPTO_SECRET=...
+
+# AWS S3
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_REGION=us-east-1
 AWS_S3_BUCKET_NAME=...
+
+# Email (GoDaddy SMTP)
 EMAIL_HOST=smtpout.secureserver.net
 EMAIL_PORT=465
 EMAIL_USER=services@prepzer0.co.in
 EMAIL_PASSWORD=...
-EMAIL_FROM=services@prepzer0.co.in
 ```
 
 ## Database Management Scripts
 
-All scripts in `/scripts/` directory:
-
 ```bash
-npm run seed:departments      # Seed initial departments
-npm run cleanup:sessions      # Clean orphaned ActivityTracker and Submission records
-npm run clean:database        # Clean database (use with caution)
-npm run audit:database        # Audit database integrity
+# Maintenance
+npm run cleanup:sessions     # Clean orphaned ActivityTracker/Submissions
+npm run audit:database       # Database integrity check
 
-# Manual scripts (run with node)
-node scripts/create-admin.js              # Create admin user
-node scripts/populate-students.js         # Populate test student data
-node scripts/populate-mcq-questions.js    # Populate MCQ questions from JSON
-node scripts/recalculate-scores.js        # Recalculate submission scores
-node scripts/clearDepartments.js          # Remove all departments
+# Data seeding
+npm run seed:departments                  # Initial departments
+node scripts/populate-students.js         # Test students
+node scripts/populate-mcq-questions.js    # MCQ questions
+
+# Utilities
+node scripts/recalculate-scores.js       # Fix submission scores
+node scripts/create-admin.js             # Create admin user
 ```
-
-See `scripts/README.md` for detailed documentation.
 
 ## Orphaned Data Handling
 
-When User records are deleted while having active sessions or submissions:
+When Users are deleted with active sessions/submissions:
+- ActivityTracker sessions → marked offline
+- Submissions → displayed with "[DELETED USER]" placeholder
+- Data preserved (scores, timestamps)
 
-- **Orphaned ActivityTracker sessions**: Automatically marked as offline by cleanup script
-- **Orphaned Submissions**: Displayed with "[DELETED USER]" placeholder in admin views, but submission data (scores, timestamps) preserved
-- **Best practice**: Implement soft deletes for User records instead of hard deletes if they have submissions
-
-Run `npm run cleanup:sessions` to identify and clean orphaned records.
+**Best practice**: Implement soft deletes for Users with submissions
 
 ## Testing
 
-### Python-based Selenium Testing (in /test/ directory)
+Python Selenium tests in `/test/`:
 ```bash
 cd test
 pip install -r requirements.txt
-python create_test_accounts.py    # Create test student accounts
-python cleanup_test_accounts.py   # Remove test accounts
-python test_chrome.py             # Run Selenium WebDriver tests
-
-# Quick test setup (Linux/Mac)
-./setup.sh                        # Install dependencies
-./quick_test.sh                   # Run quick test
+python create_test_accounts.py    # Setup
+python test_chrome.py             # Run tests
 ```
 
-**No Node.js test framework configured** - implement tests as needed using your preferred library (Jest, Mocha, etc.).
+No Node.js test framework configured.
 
-## Known Limitations & Partial Implementations
+## Partial Implementations
 
-### Current Limitations
-- Only MCQ exams fully supported
-- No automated Node.js test suite (manual Selenium testing only)
-- Helmet.js security headers commented out in `app.js:56`
-- No pagination on large data views (exam candidates, submissions)
+**Coding Exams**: Models and views exist, controller logic missing
+- Models: `CodingQuestion.js`, `Codingschema.js`
+- Views: `add_coding.ejs`, `edit_coding.ejs`
+- Missing: Execution environment, test case validation
 
-### Partial Implementations
-**Coding Exams**:
-- Models exist: `CodingQuestion.js`, `Codingschema.js`
-- Views exist: `add_coding.ejs`, `edit_coding.ejs`, `sel_coding_db.ejs`
-- Missing: Controller logic, route handlers, code execution environment, test case validation
+**Services Layer**: `/services/` directory empty
 
-**Services Layer**:
-- `/services/` directory exists but empty
-- Planned for business logic abstraction
-- Would separate controller logic from data access
+## Security Notes
 
-## Troubleshooting Common Issues
+- Helmet.js commented out (app.js:56)
+- Magic bytes verification for image uploads
+- S3 server-side encryption (AES256)
+- Session encryption with SESSION_CRYPTO_SECRET
+- MongoDB sanitization, XSS protection, HPP prevention
 
-### MongoDB Connection Issues
-- Verify `MONGODB_URI` in `.env` is correct
-- Check if MongoDB service is running
-- Ensure IP whitelist in MongoDB Atlas includes your IP
+## Troubleshooting
 
 ### Session Issues
-- Clear browser cookies if getting unexpected logouts
-- Check `SESSION_SECRET` and `SESSION_CRYPTO_SECRET` are set
-- Verify MongoDB session store is connected
+- Clear cookies for unexpected logouts
+- Verify SESSION_SECRET and SESSION_CRYPTO_SECRET set
+- Check MongoDB session store connection
 
 ### File Upload Failures
-- Ensure AWS credentials are correctly set in `.env`
-- Verify S3 bucket permissions allow uploads
-- Check file size limits in `config/upload.js`
-
-### Email Not Sending
-- Verify SMTP credentials in `.env`
-- Check if port 465 is not blocked
-- Ensure `EMAIL_FROM` matches authenticated email
-
-### CSS Not Updating
-- Run `npm run build:css` to rebuild Tailwind CSS
-- Clear browser cache
-- Check if `landing.css` has your changes
+- Verify AWS credentials in .env
+- Check S3 bucket permissions
+- Confirm file size limits (CSV: 5MB, Images: 2MB, Excel: 10MB)
 
 ### Classification Button Not Working
-If "Add Classification" button doesn't open modal:
-- Check browser console for JavaScript errors
-- Verify classifications data: `console.log(<%- JSON.stringify(classifications || []) %>)`
-- Ensure modal element exists: `document.getElementById('addClassificationModal')`
-- Check event listener attachment in console logs
-- Clear browser cache and reload
+- Check browser console for errors
+- Clear browser cache
 - Verify route exists: POST `/admin/exam/{examId}/database/classification/add`
 
-## Security Considerations
-
-When working with this codebase:
-
-1. **File Upload Security**: Always use configured upload middleware from `config/upload.js`
-2. **Session Management**: Never bypass `sessionValidator` middleware for exam routes
-3. **User Deletion**: Implement soft deletes instead of hard deletes to prevent orphaned submissions
-4. **Environment Variables**: Never commit `.env` files or expose sensitive credentials
-5. **Magic Bytes Validation**: Image uploads use magic bytes verification in addition to MIME type checks
-6. **S3 Security**: All S3 uploads use server-side encryption (AES256)
+### CSS Not Updating
+- Run `npm run build:css`
+- Clear browser cache
+- Check `public/style.css` generated from `public/landing.css`
 
 ## Additional Documentation
 
-- `SECURITY_AUDIT.md` - Security audit documentation
-- `SECURITY_FIXES_APPLIED.md` - Record of security patches
-- `BULK_STUDENT_UPLOAD_FEATURE.md` - Detailed guide for bulk student account creation
-- `scripts/README.md` - Documentation for database management scripts
-- `templates/student_upload_template.csv` - Sample CSV template for bulk uploads
+- `BULK_STUDENT_UPLOAD_FEATURE.md` - Bulk upload guide
+- `ATTENDANCE_TRACKING_FEATURE.md` - Attendance tracking documentation
+- `SECURITY_AUDIT.md` - Security assessment report
+- `scripts/README.md` - Database scripts documentation
+- `templates/student_upload_template.csv` - CSV template
 
-## Recent Changes & Git Status
+## Important Implementation Details
 
-Current branch: `main`
+### Request Flow Architecture
+```
+HTTP Request → server.js (port 80/3000)
+    ↓
+app.js middleware chain:
+  1. Body parsers (JSON, URL-encoded, 100MB limit)
+  2. Security: mongoSanitize, HPP, XSS, rate limiting
+  3. Session (MongoStore + encryption)
+  4. Passport authentication
+  5. validateSingleSession (single-device enforcement)
+  6. Flash messaging
+    ↓
+Route matching → routes/*.js
+    ↓
+Route middleware (requireAuth, requireStudent, requireAdmin)
+    ↓
+Controller function → Models → MongoDB
+    ↓
+Response (render/json/redirect)
+```
 
-Modified files (not committed):
-- `controllers/admincontroller.js`
-- `controllers/dbQuestionsController.js`
-- `models/MCQQuestion.js`
-- `models/MCQschema.js`
-- `models/usermodel.js`
-- `routes/admin.js`
-- `views/allstudentsprofile.ejs`
-- `views/database_questions.ejs`
-- `views/departments.ejs`
-- `views/student_exam_history.ejs`
+### Database Collection Names (Important for Queries)
+Some models have different collection names than their model names:
+- `ActiveSession` model → `activitytrackers` collection
+- `User` model → `users` collection
+- `Exam` model → `exams` collection
 
-Untracked file: `nul`
+### Role-Based Access Control Patterns
+```javascript
+// Student routes (single-device enforced on exam routes)
+/dashboard                → requireStudent
+/dashboard/test/*         → requireStudent + validateSingleSession
 
-Recent commits:
-- `3551d61` - added export features and edit students profile
-- `7fc4c81` - added the semester upgrade system manually and show not submitted for not submitted students
-- `c141bd6` - addBulkStudent feature added
+// Teacher/Admin routes (multi-device allowed)
+/admin                    → requireAdmin
+/admin/create_exam        → requireAdmin
 
-**Note**: When making commits, follow existing commit message style (lowercase, descriptive, concise).
+// Super Admin routes
+/supadmin                 → requireSuperAdmin
+```
+
+### Exam Eligibility Logic (dashboardcontroller.js)
+Students see an exam if EITHER:
+1. **Department + Semester match**: `exam.departments.includes(student.Department) && exam.semester === student.CurrentSemester`
+2. **ExamCandidate exists**: `ExamCandidate.find({ exam: examId, usn: student.USN })`
+
+Both paths are queried and merged (union of results).
+
+### Activity Tracking (Real-time)
+```javascript
+// Client-side (test3.ejs)
+Every 30 seconds: POST /dashboard/see-active
+  → Updates ActivityTracker.lastPingTimestamp
+  → Adds entry to pingHistory (if 30+ seconds since last)
+  → Sets status: 'active'
+
+// Server-side
+No ping for extended period → status remains 'active' (not auto-changed to 'offline')
+Only changed to 'offline' on explicit submission or leave action
+```
+
+### Auto-Scoring Implementation
+```javascript
+// On submission (dashboardcontroller.postStartExam)
+score = 0
+for each question in exam.mcqQuestions:
+  studentAnswer = mcqAnswers.find(a => a.questionId === question._id)
+  if (studentAnswer.selectedOption === question.correctAnswer):
+    score += question.marks
+```
+
+### Common Gotchas
+
+1. **Session validation only affects students on exam routes** - Teachers/admins can use multiple devices
+2. **CurrentSemester is virtual** - Calculated from USN year unless `currentSemesterOverride` is set
+3. **Exam validation is pre-save** - Must have (dept+sem) OR excelCandidates, never both
+4. **Collection name mismatch** - ActiveSession model uses `activitytrackers` collection
+5. **Image upload requires magic bytes** - Not just MIME type validation
+6. **Passport username field is `email`** - Not typical 'username'
+7. **ActivityTracker has 7-day TTL** - Auto-cleanup via MongoDB TTL index
+8. **Teachers need two approvals** - Both `active: true` (email verified) AND `userallowed: true` (admin approved)
+
+### Controller Naming Convention
+Controllers use `getcontrol` and `postcontrol` method names (not camelCase like `getControl`):
+```javascript
+exports.getcontrol = async (req, res) => { ... }
+exports.postcontrol = async (req, res) => { ... }
+exports.logincontrol = async (req, res) => { ... }
+```
+
+### When Making Changes
+
+**Before modifying User model:**
+- Consider impact on single-device enforcement (currentSessionId)
+- Consider impact on semester calculation (CurrentSemester virtual)
+- Check for orphaned references if deleting users with submissions
+
+**Before modifying Exam model:**
+- Test pre-save validation (departments+semester vs excelCandidates)
+- Update exam eligibility queries in dashboardcontroller
+- Check ExamCandidate associations
+
+**Before modifying session logic:**
+- Remember: only affects students on exam routes
+- Test multi-device access for teachers/admins
+- Verify SESSION_SECRET and SESSION_CRYPTO_SECRET set
+
+**Before modifying file uploads:**
+- Update magic bytes validation if adding new file types
+- Check S3 bucket permissions for new paths
+- Verify file size limits in config/upload.js

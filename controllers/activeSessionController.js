@@ -69,3 +69,63 @@ exports.trackUserActivity = async (req, res) => {
         });
     }
 };
+
+exports.markStudentLeft = async (req, res) => {
+    console.log("Marking student as left exam");
+    try {
+        const { examId, userId } = req.body;
+
+        if (!examId || !userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'examId and userId are required'
+            });
+        }
+
+        // Find and update the activity record to mark as "left"
+        const activityRecord = await ActivityTracker.findOneAndUpdate(
+            { examId, userId },
+            {
+                status: 'left',
+                lastPingTimestamp: new Date(),
+                $push: {
+                    pingHistory: {
+                        timestamp: new Date(),
+                        status: 'left'
+                    }
+                }
+            },
+            {
+                new: true  // Return updated document
+            }
+        );
+
+        if (!activityRecord) {
+            return res.status(404).json({
+                success: false,
+                message: 'Activity record not found'
+            });
+        }
+
+        console.log(`Student ${userId} marked as left exam ${examId}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Student marked as left exam',
+            data: {
+                userId: activityRecord.userId,
+                examId: activityRecord.examId,
+                status: activityRecord.status,
+                lastPing: activityRecord.lastPingTimestamp
+            }
+        });
+
+    } catch (error) {
+        console.error('Error marking student as left:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while updating status',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};

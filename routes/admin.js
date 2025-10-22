@@ -165,4 +165,13 @@ router
 // Semester upgrade route
 router.route("/upgrade-semester").post(admincontroller.upgradeSemester)
 
+// Partial submission routes
+router
+  .route("/exam/:examId/partial-submissions")
+  .get(admincontroller.getPartialSubmissions)
+
+router
+  .route("/partial-submission/:submissionId")
+  .get(admincontroller.viewPartialSubmission)
+
 module.exports = router

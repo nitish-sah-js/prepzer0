@@ -9,6 +9,7 @@ const ActivityTracker = require('../models/ActiveSession');
 const ReportModel = require('./../models/reportModel');
 const mongoose = require('mongoose');
 const ExamCandidate = require('../models/ExamCandidate');
+const PartialSubmission = require('../models/PartialSubmission');
 
 const EvaluationResult = require('../models/EvaluationResultSchema')
 
@@ -1200,73 +1201,329 @@ exports.examCandidates = async(req, res) => {
     }
 };
 
+// Helper function to get candidates data
+async function getCandidatesData(examId, exam, hasMCQ, hasCoding, maxMCQScore, maxCodingScore) {
+    // Fetch submissions
+    const submissions = await Submission.find({ exam: examId })
+        .populate('student', 'USN email Department Semester Rollno _id fname lname CurrentSemester')
+        .sort({ submittedAt: -1 });
+
+    // Create a set of student IDs who have submitted
+    const submittedStudentIds = new Set();
+    submissions.forEach(submission => {
+        if (submission.student && submission.student._id) {
+            submittedStudentIds.add(submission.student._id.toString());
+        }
+    });
+
+    // Get evaluation map for coding exams
+    let evaluationMap = new Map();
+    if (hasCoding) {
+        const submissionUserIds = submissions.map(submission =>
+            submission.student && submission.student._id ?
+                submission.student._id.toString() : null
+        ).filter(id => id !== null);
+
+        const EvaluationResult = mongoose.models.EvaluationResult ||
+            mongoose.model('EvaluationResult', evaluationResultSchema);
+
+        const existingEvaluations = await EvaluationResult.find({
+            examId: examId,
+            userId: { $in: submissionUserIds }
+        }).select('userId totalScore maxPossibleScore percentage');
+
+        existingEvaluations.forEach(evaluation => {
+            evaluationMap.set(evaluation.userId.toString(), evaluation);
+        });
+    }
+
+    // Check if exam has ended
+    const now = new Date();
+    const examEndTime = new Date(exam.scheduleTill);
+    const examHasEnded = now > examEndTime;
+
+    // Fetch active sessions for this exam
+    const activeSessions = await ActivityTracker.find({ examId: examId })
+        .populate('userId', 'USN email Department Semester Rollno _id fname lname CurrentSemester')
+        .select('userId status lastPingTimestamp')
+        .sort({ lastPingTimestamp: -1 });
+
+    // Update status to offline for students who have submitted OR if exam has ended
+    const updatePromises = [];
+    activeSessions.forEach(session => {
+        if (!session.userId || !session.userId._id) {
+            if (session.status !== 'offline') {
+                updatePromises.push(
+                    ActivityTracker.findByIdAndUpdate(
+                        session._id,
+                        { status: 'offline' }
+                    )
+                );
+                session.status = 'offline';
+            }
+            return;
+        }
+
+        const studentId = session.userId._id.toString();
+        const shouldBeOffline = submittedStudentIds.has(studentId) || examHasEnded;
+
+        if (shouldBeOffline && session.status !== 'offline') {
+            updatePromises.push(
+                ActivityTracker.findByIdAndUpdate(
+                    session._id,
+                    { status: 'offline' }
+                )
+            );
+            session.status = 'offline';
+        }
+    });
+
+    if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+    }
+
+    // Convert active sessions to a map
+    const activeSessionsMap = new Map();
+    activeSessions.forEach(session => {
+        if (!session.userId || !session.userId._id) return;
+
+        const userId = session.userId._id.toString();
+        activeSessionsMap.set(userId, {
+            status: session.status,
+            lastPing: session.lastPingTimestamp,
+            studentInfo: session.userId
+        });
+    });
+
+    // Process all candidates
+    const studentMap = new Map();
+
+    // Process submitted students
+    for (const submission of submissions) {
+        if (submission.student && submission.student._id && !studentMap.has(submission.student._id.toString())) {
+            const studentId = submission.student._id.toString();
+            const activeSession = activeSessionsMap.get(studentId);
+
+            let mcqScore = submission.score || 0;
+            let codingScore = 0;
+            let isEvaluated = false;
+
+            if (hasCoding) {
+                const evaluation = evaluationMap.get(studentId);
+                if (evaluation) {
+                    codingScore = evaluation.totalScore || 0;
+                    isEvaluated = true;
+                }
+            }
+
+            const totalScore = mcqScore + codingScore;
+            const totalPossible = maxMCQScore + maxCodingScore;
+
+            let displayScore = '';
+            if (hasMCQ && hasCoding) {
+                displayScore = isEvaluated ?
+                    `${totalScore}/${totalPossible}` :
+                    `${mcqScore}/${maxMCQScore} + Pending`;
+            } else if (hasMCQ) {
+                displayScore = `${mcqScore}/${maxMCQScore}`;
+            } else if (hasCoding) {
+                displayScore = isEvaluated ?
+                    `${codingScore}/${maxCodingScore}` :
+                    'Pending Evaluation';
+            } else {
+                displayScore = 'N/A';
+            }
+
+            studentMap.set(studentId, {
+                student: submission.student,
+                submission: submission,
+                score: displayScore,
+                mcqScore: mcqScore,
+                codingScore: codingScore,
+                totalScore: totalScore,
+                maxMCQScore: maxMCQScore,
+                maxCodingScore: maxCodingScore,
+                maxTotalScore: totalPossible,
+                evaluationStatus: hasCoding ?
+                    (isEvaluated ? 'Evaluated' : 'Pending Evaluation') : 'N/A',
+                submittedAt: submission.submittedAt,
+                activityStatus: activeSession ? activeSession.status : 'offline',
+                lastActive: activeSession ? activeSession.lastPing : null,
+                hasSubmitted: true
+            });
+
+            activeSessionsMap.delete(studentId);
+        }
+    }
+
+    // Process active sessions for students who haven't submitted (started but left)
+    for (const [userId, sessionData] of activeSessionsMap) {
+        if (!studentMap.has(userId)) {
+            const student = sessionData.studentInfo;
+            if (!student || !student._id) continue;
+
+            const now = new Date();
+            const lastPingTime = new Date(sessionData.lastPing);
+            const timeSinceLastPing = (now - lastPingTime) / 1000 / 60; // in minutes
+
+            let activityStatus = sessionData.status;
+
+            // Determine the actual status based on various conditions
+            if (activityStatus === 'left') {
+                // Already marked as left
+                activityStatus = 'left';
+            } else if (examHasEnded) {
+                // Exam has ended and student didn't submit - they left
+                activityStatus = 'left';
+            } else if (activityStatus === 'active' && timeSinceLastPing <= 2) {
+                // Recent ping within 2 minutes - still active
+                activityStatus = 'active';
+            } else if (timeSinceLastPing > 5) {
+                // No ping for more than 5 minutes - they left
+                activityStatus = 'left';
+            } else if (activityStatus === 'inactive' && timeSinceLastPing > 2) {
+                // Inactive for more than 2 minutes - they left
+                activityStatus = 'left';
+            } else if (activityStatus === 'offline') {
+                // Marked as offline without submission - they left
+                activityStatus = 'left';
+            }
+
+            // Check if there's a partial submission for this student
+            let partialAnswersCount = 0;
+            try {
+                const PartialSubmission = mongoose.models.PartialSubmission;
+                if (PartialSubmission) {
+                    const partial = await PartialSubmission.findOne({
+                        exam: examId,
+                        student: userId
+                    });
+                    if (partial && partial.mcqAnswers) {
+                        partialAnswersCount = partial.mcqAnswers.size || Object.keys(partial.mcqAnswers).length || 0;
+                    }
+                }
+            } catch (err) {
+                console.log('Could not fetch partial submission:', err);
+            }
+
+            studentMap.set(userId, {
+                student: student,
+                submission: null,
+                score: partialAnswersCount > 0 ? `Partial (${partialAnswersCount} answered)` : 'Did not submit',
+                mcqScore: 0,
+                codingScore: 0,
+                totalScore: 0,
+                maxMCQScore: maxMCQScore,
+                maxCodingScore: maxCodingScore,
+                maxTotalScore: maxMCQScore + maxCodingScore,
+                evaluationStatus: partialAnswersCount > 0 ? 'Partial submission' : 'Not submitted',
+                submittedAt: null,
+                activityStatus: activityStatus,
+                lastActive: sessionData.lastPing,
+                hasSubmitted: false,
+                hasStarted: true,
+                hasPartialSubmission: partialAnswersCount > 0,
+                partialAnswersCount: partialAnswersCount
+            });
+        }
+    }
+
+    let candidates = Array.from(studentMap.values());
+
+    // Sort candidates
+    candidates.sort((a, b) => {
+        if (a.activityStatus === 'active' && b.activityStatus !== 'active') return -1;
+        if (a.activityStatus !== 'active' && b.activityStatus === 'active') return 1;
+
+        if (a.hasSubmitted && !b.hasSubmitted) return -1;
+        if (!a.hasSubmitted && b.hasSubmitted) return 1;
+
+        if (a.hasSubmitted && b.hasSubmitted) {
+            if (a.totalScore !== b.totalScore) {
+                return b.totalScore - a.totalScore;
+            }
+        }
+
+        if (a.submittedAt && b.submittedAt) {
+            return new Date(b.submittedAt) - new Date(a.submittedAt);
+        }
+
+        return 0;
+    });
+
+    return candidates;
+}
+
 // Helper function for page requests (your existing examCandidates logic)
 async function handleCandidatesPageRequest(req, res, examId) {
     // Fetch the exam details with populated questions
     const exam = await Exam.findById(examId)
         .populate('mcqQuestions');
-    
+
     if (!exam) {
-        return res.status(404).render('error', { 
+        return res.status(404).render('error', {
             message: 'Exam not found',
-            error: { status: 404, stack: '' } 
+            error: { status: 404, stack: '' }
         });
     }
-    
+
     // Determine if this exam has MCQ questions, coding questions, or both
     const hasMCQ = exam.questionType === 'mcq' || exam.questionType === 'mcq&coding';
     const hasCoding = exam.questionType === 'coding' || exam.questionType === 'mcq&coding';
-    
+
     // Calculate maximum possible scores
     let maxMCQScore = 0;
     if (hasMCQ && exam.mcqQuestions && exam.mcqQuestions.length > 0) {
         maxMCQScore = exam.mcqQuestions.reduce((sum, q) => sum + (q.marks || 0), 0);
     }
-    
+
     let maxCodingScore = 0;
     if (hasCoding && exam.codingQuestions && exam.codingQuestions.length > 0) {
         maxCodingScore = exam.codingQuestions.reduce((sum, q) => sum + (q.maxMarks || 0), 0);
     }
-    
+
     // MODIFIED: Only get evaluation summary for coding exams
     let evaluationSummary = { total: 0, evaluated: 0, pending: 0 };
-    
+
     if (hasCoding) {
         // Get total submissions count
         const totalSubmissions = await Submission.countDocuments({ exam: examId });
-        
+
         // Get evaluated submissions count
         const submittedStudentIds = await Submission.find({ exam: examId })
             .select('student')
             .lean();
-        
+
         const studentIds = submittedStudentIds
             .map(s => s.student ? s.student.toString() : null)
             .filter(id => id !== null);
-        
-        const EvaluationResult = mongoose.models.EvaluationResult || 
+
+        const EvaluationResult = mongoose.models.EvaluationResult ||
             mongoose.model('EvaluationResult', evaluationResultSchema);
-        
+
         const evaluatedCount = await EvaluationResult.countDocuments({
             examId: examId,
             userId: { $in: studentIds }
         });
-        
+
         evaluationSummary = {
             total: totalSubmissions,
             evaluated: evaluatedCount,
             pending: totalSubmissions - evaluatedCount
         };
     }
-    
+
+    // Get the actual candidates data instead of empty array
+    const candidatesData = await getCandidatesData(examId, exam, hasMCQ, hasCoding, maxMCQScore, maxCodingScore);
+
     // Get total candidates count for display
-    const totalCandidatesCount = await Submission.countDocuments({ exam: examId });
-    
-    // Render the candidates view WITHOUT candidate data (will be loaded via AJAX)
-    res.render('exam_candidates1', {
+    const totalCandidatesCount = candidatesData.length;
+
+    // Render the candidates view WITH candidate data
+    res.render('exam_candidates', {
         title: `Candidates for ${exam.name}`,
         exam: exam,
-        candidates: [], // EMPTY - will be loaded via AJAX
+        candidates: candidatesData, // ACTUAL DATA instead of empty array
         hasMCQ: hasMCQ,
         hasCoding: hasCoding,
         scoreSummary: {
@@ -1373,8 +1630,8 @@ async function handleCandidatesDataRequest(req, res, examId) {
             submission.student._id.toString() : null
         ).filter(id => id !== null);
         
-        const EvaluationResult = mongoose.models.EvaluationResult || 
-            mongoose.model('EvaluationResult', evaluationResultSchema);
+        const EvaluationResult = mongoose.models.EvaluationResult ||
+            mongoose.model('EvaluationResult', require('../models/EvaluationResultSchema'));
         
         const existingEvaluations = await EvaluationResult.find({
             examId: examId,
@@ -1591,10 +1848,49 @@ async function handleCandidatesDataRequest(req, res, examId) {
         }
     }
     
-    // REMOVED: No longer processing active sessions of students who haven't submitted
-    // The candidates page should ONLY show students who actually submitted
-    // Students who started but didn't submit should NOT appear here
-    
+    // Process active sessions for students who haven't submitted (started but left)
+    for (const [userId, sessionData] of activeSessionsMap) {
+        if (!studentMap.has(userId)) {
+            const studentId = userId;
+            const student = sessionData.studentInfo;
+
+            if (!student || !student._id) continue; // Skip if no valid student data
+
+            // Determine if student left the exam
+            const now = new Date();
+            const lastPingTime = new Date(sessionData.lastPing);
+            const timeSinceLastPing = (now - lastPingTime) / 1000 / 60; // in minutes
+
+            // Consider student as "left" if:
+            // 1. Last ping was more than 5 minutes ago and status is not active
+            // 2. OR exam has ended
+            let activityStatus = sessionData.status;
+            if (examHasEnded) {
+                activityStatus = 'left'; // Mark as left if exam ended without submission
+            } else if (timeSinceLastPing > 5 && sessionData.status !== 'active') {
+                activityStatus = 'left';
+            }
+
+            studentMap.set(studentId, {
+                student: student,
+                submission: null,
+                score: 'Did not submit',
+                mcqScore: 0,
+                codingScore: 0,
+                totalScore: 0,
+                maxMCQScore: maxMCQScore,
+                maxCodingScore: maxCodingScore,
+                maxTotalScore: maxMCQScore + maxCodingScore,
+                evaluationStatus: 'Not submitted',
+                submittedAt: null,
+                activityStatus: activityStatus,
+                lastActive: sessionData.lastPing,
+                hasSubmitted: false,
+                hasStarted: true // Flag to indicate student started the exam
+            });
+        }
+    }
+
     let candidates = Array.from(studentMap.values());
     
     // Apply status filter
@@ -1606,8 +1902,11 @@ async function handleCandidatesDataRequest(req, res, examId) {
             case 'active':
                 candidates = candidates.filter(c => c.activityStatus === 'active' && !c.hasSubmitted);
                 break;
+            case 'left':
+                candidates = candidates.filter(c => c.activityStatus === 'left' && !c.hasSubmitted);
+                break;
             case 'inactive':
-                candidates = candidates.filter(c => c.activityStatus !== 'active' && !c.hasSubmitted);
+                candidates = candidates.filter(c => c.activityStatus !== 'active' && c.activityStatus !== 'left' && !c.hasSubmitted);
                 break;
         }
     }
@@ -2299,5 +2598,125 @@ exports.upgradeSemester = async (req, res) => {
             message: 'Server error occurred while upgrading semester',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    }
+};
+
+// Get partial submissions for an exam
+exports.getPartialSubmissions = async (req, res) => {
+    try {
+        if (!req.isAuthenticated() || !['admin', 'teacher'].includes(req.user.usertype)) {
+            return res.status(403).json({ error: 'Unauthorized access' });
+        }
+
+        const examId = req.params.examId;
+
+        // Get all partial submissions for this exam
+        const partialSubmissions = await PartialSubmission.find({
+            exam: examId,
+            isPartial: true
+        })
+        .populate('student', 'fname lname email USN')
+        .populate('exam', 'name')
+        .sort({ lastSavedAt: -1 });
+
+        // Format the data for response
+        const formattedSubmissions = partialSubmissions.map(submission => {
+            const answeredCount = (submission.mcqAnswers?.length || 0) + (submission.codingAnswers?.length || 0);
+
+            return {
+                _id: submission._id,
+                student: {
+                    _id: submission.student._id,
+                    name: `${submission.student.fname} ${submission.student.lname}`,
+                    email: submission.student.email,
+                    usn: submission.student.USN
+                },
+                exam: submission.exam.name,
+                answeredQuestions: answeredCount,
+                mcqAnswers: submission.mcqAnswers,
+                codingAnswers: submission.codingAnswers,
+                timeRemaining: submission.timeRemaining,
+                lastSavedAt: submission.lastSavedAt,
+                examStartedAt: submission.examStartedAt
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            count: formattedSubmissions.length,
+            data: formattedSubmissions
+        });
+
+    } catch (error) {
+        console.error('Error fetching partial submissions:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch partial submissions'
+        });
+    }
+};
+
+// View detailed partial submission
+exports.viewPartialSubmission = async (req, res) => {
+    try {
+        if (!req.isAuthenticated() || !['admin', 'teacher'].includes(req.user.usertype)) {
+            return res.status(403).send('Unauthorized access');
+        }
+
+        const submissionId = req.params.submissionId;
+
+        const partialSubmission = await PartialSubmission.findById(submissionId)
+            .populate('student', 'fname lname email USN Department')
+            .populate({
+                path: 'exam',
+                populate: {
+                    path: 'mcqQuestions'
+                }
+            });
+
+        if (!partialSubmission) {
+            return res.status(404).send('Partial submission not found');
+        }
+
+        // Calculate score for answered questions
+        let score = 0;
+        let detailedAnswers = [];
+
+        if (partialSubmission.exam.mcqQuestions) {
+            partialSubmission.exam.mcqQuestions.forEach(question => {
+                const studentAnswer = partialSubmission.mcqAnswers.find(
+                    ans => ans.questionId.toString() === question._id.toString()
+                );
+
+                const isCorrect = studentAnswer && studentAnswer.selectedOption === question.correctAnswer;
+
+                if (isCorrect) {
+                    score += question.marks || 1;
+                }
+
+                detailedAnswers.push({
+                    question: question.question || question.questionTitle,
+                    options: question.options,
+                    correctAnswer: question.correctAnswer,
+                    studentAnswer: studentAnswer ? studentAnswer.selectedOption : 'Not Answered',
+                    isCorrect: isCorrect,
+                    marks: question.marks || 1
+                });
+            });
+        }
+
+        res.render('viewPartialSubmission', {
+            submission: partialSubmission,
+            detailedAnswers: detailedAnswers,
+            currentScore: score,
+            totalQuestions: partialSubmission.exam.mcqQuestions?.length || 0,
+            answeredQuestions: partialSubmission.mcqAnswers?.length || 0,
+            timeRemaining: partialSubmission.timeRemaining,
+            user: req.user
+        });
+
+    } catch (error) {
+        console.error('Error viewing partial submission:', error);
+        res.status(500).send('Server error');
     }
 };

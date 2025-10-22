@@ -13,7 +13,7 @@ const ActivityTrackerSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["active", "inactive", "offline"],
+        enum: ["active", "inactive", "offline", "left"],
         default: "inactive"
     },
     isAllowedResubmit: {
@@ -31,7 +31,7 @@ const ActivityTrackerSchema = new mongoose.Schema({
         },
         status: {
             type: String,
-            enum: ["active", "inactive", "offline"],
+            enum: ["active", "inactive", "offline", "left"],
             default: "active"
         }
     }],
