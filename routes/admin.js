@@ -137,6 +137,11 @@ router
   .route("/exam/:examId/database/random")
   .post(databaseController.addRandomQuestions)
 
+// Add new classification
+router
+  .route("/exam/:examId/database/classification/add")
+  .post(databaseController.addClassification)
+
 // Department management routes (old user-based)
 router
   .route("/manage-departments")

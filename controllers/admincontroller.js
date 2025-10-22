@@ -173,48 +173,76 @@ exports.signuppostcontrol = async(req,res)=>{
     exports.allStudents = async(req, res) => {
         try {
             // Get filter parameters from query string
-            const { semester, department, usn } = req.query;
-            
+            const { semester, department, usn, page = 1 } = req.query;
+
+            // Pagination settings
+            const limit = 20; // Students per page
+            const currentPage = parseInt(page);
+            const skip = (currentPage - 1) * limit;
+
             // Build filter object
             let filter = { usertype: "student" };
-            
-            // Add optional filters if they exist
-            if (semester) {
-                filter.Semester = semester;
-            }
-            
+
+            // Note: We can't filter by semester in the database query because
+            // CurrentSemester is a virtual field that's calculated at runtime.
+            // We'll filter by semester in-memory after fetching.
+
             if (department) {
                 // Case insensitive search for department
                 filter.Department = new RegExp(department, 'i');
             }
-            
+
             if (usn) {
                 // Case insensitive search for USN
                 filter.USN = new RegExp(usn, 'i');
             }
-            
-            // Query the database with all filters
-            const students = await User.find(filter)
+
+            // Query the database with filters (except semester)
+            let students = await User.find(filter)
                 .select('-password -passwordresettoken -passwordresetdate') // Exclude sensitive fields
                 .sort({ created: -1 }); // Sort by creation date, newest first
-            
 
-            console.log(students[0]);
+            // Filter by CurrentSemester in-memory (virtual field)
+            if (semester) {
+                students = students.filter(student => {
+                    const currentSem = student.CurrentSemester;
+                    return currentSem == semester; // Use == for type coercion (string/number)
+                });
+            }
+
+            // Calculate pagination
+            const totalStudents = students.length;
+            const totalPages = Math.ceil(totalStudents / limit);
+
+            // Apply pagination
+            const paginatedStudents = students.slice(skip, skip + limit);
+
+            console.log(`Page ${currentPage}/${totalPages}, showing ${paginatedStudents.length} of ${totalStudents} students`);
+
             // Render the EJS template with the students data
-            res.render('allstudentsprofile', { 
-                students: students,
-                title: 'All Students', 
+            res.render('allstudentsprofile', {
+                students: paginatedStudents,
+                title: 'All Students',
                 heading: 'Student Profiles',
                 // Pass the current filter values to pre-populate the form
                 currentFilters: {
                     semester: semester || '',
                     department: department || '',
                     usn: usn || ''
+                },
+                // Pagination data
+                pagination: {
+                    currentPage: currentPage,
+                    totalPages: totalPages,
+                    totalStudents: totalStudents,
+                    hasNextPage: currentPage < totalPages,
+                    hasPrevPage: currentPage > 1,
+                    limit: limit
                 }
             });
         } catch (error) {
             console.error('Error fetching students:', error);
-            res.status(500).render('error', { 
+            res.status(500).render('error', {
                 message: 'Failed to load student profiles',
                 error: error
             });
@@ -2114,7 +2142,10 @@ exports.editStudent = async (req, res) => {
         student.USN = USN;
         student.email = email;
         student.Department = Department;
-        student.Semester = parseInt(Semester);
+
+        // Don't update the stored Semester field - keep it as original enrollment semester
+        // Instead, set currentSemesterOverride to change what's displayed
+        student.currentSemesterOverride = parseInt(Semester);
 
         if (phone) student.phone = phone;
         if (Rollno) student.Rollno = Rollno;
@@ -2189,13 +2220,9 @@ exports.upgradeSemester = async (req, res) => {
         // Calculate new semester
         const newSemester = parseInt(fromSemester) + 1;
 
-        // Build query filter - check both exact number and string representation
+        // Build base query filter (without semester, since CurrentSemester is virtual)
         let filter = {
-            usertype: 'student',
-            $or: [
-                { Semester: parseInt(fromSemester) },
-                { Semester: fromSemester.toString() }
-            ]
+            usertype: 'student'
         };
 
         // Add department filter if provided (case-insensitive)
@@ -2205,31 +2232,34 @@ exports.upgradeSemester = async (req, res) => {
 
         console.log('Searching for students with filter:', JSON.stringify(filter));
 
-        // First, let's check all students to debug
-        const allStudents = await User.find({ usertype: 'student' }).select('Semester Department USN');
-        console.log(`Total students in database: ${allStudents.length}`);
-        console.log('Sample students:', allStudents.slice(0, 5).map(s => ({
+        // Fetch all students matching base filter
+        let allStudents = await User.find(filter);
+        console.log(`Total students in database matching base filter: ${allStudents.length}`);
+
+        // Filter by CurrentSemester in-memory (virtual field)
+        const studentsToUpdate = allStudents.filter(student => {
+            return student.CurrentSemester == fromSemester;
+        });
+
+        console.log(`Found ${studentsToUpdate.length} students in CurrentSemester ${fromSemester}`);
+        console.log('Sample students:', studentsToUpdate.slice(0, 5).map(s => ({
             USN: s.USN,
-            Semester: s.Semester,
-            SemesterType: typeof s.Semester,
+            CurrentSemester: s.CurrentSemester,
+            StoredSemester: s.Semester,
             Department: s.Department
         })));
-
-        // Find students matching the criteria
-        const studentsToUpdate = await User.find(filter).select('USN Semester Department');
-
-        console.log(`Found ${studentsToUpdate.length} students matching filter`);
 
         if (studentsToUpdate.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: `No students found in semester ${fromSemester}${department && department !== 'all' ? ` for department ${department.toUpperCase()}` : ''}. Check console for debug info.`,
+                message: `No students found in current semester ${fromSemester}${department && department !== 'all' ? ` for department ${department.toUpperCase()}` : ''}. Check console for debug info.`,
                 debug: {
                     totalStudents: allStudents.length,
                     searchedSemester: fromSemester,
                     searchedDepartment: department,
                     sampleData: allStudents.slice(0, 3).map(s => ({
-                        Semester: s.Semester,
+                        CurrentSemester: s.CurrentSemester,
+                        StoredSemester: s.Semester,
                         Department: s.Department,
                         USN: s.USN
                     }))
@@ -2237,10 +2267,11 @@ exports.upgradeSemester = async (req, res) => {
             });
         }
 
-        // Update all matching students - use the same filter
+        // Update students individually to set currentSemesterOverride
+        const studentIds = studentsToUpdate.map(s => s._id);
         const updateResult = await User.updateMany(
-            filter,
-            { $set: { Semester: newSemester } }
+            { _id: { $in: studentIds } },
+            { $set: { currentSemesterOverride: newSemester } }
         );
 
         console.log(`Upgraded ${updateResult.modifiedCount} students from semester ${fromSemester} to ${newSemester}${department && department !== 'all' ? ` in department ${department.toUpperCase()}` : ''}`);

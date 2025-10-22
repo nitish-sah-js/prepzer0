@@ -74,10 +74,19 @@ const UserSchema = new mongoose.Schema({
             type : String ,
             
         },  
-        Semester: { 
+        Semester: {
             type: Number,
-             min: 1, max: 8 
-            }, 
+             min: 1, max: 8
+            },
+
+        // Override for current semester (set by admin when manually updating)
+        // If set, this takes precedence over auto-calculation
+        currentSemesterOverride: {
+            type: Number,
+            min: 1,
+            max: 8,
+            default: null
+        },
 
         password : String ,
         phonecode :{
@@ -118,14 +127,21 @@ const UserSchema = new mongoose.Schema({
 
 // Virtual field to calculate current semester dynamically
 UserSchema.virtual('CurrentSemester').get(function() {
+    // If admin has manually set an override, use that
+    if (this.currentSemesterOverride !== null && this.currentSemesterOverride !== undefined) {
+        return this.currentSemesterOverride;
+    }
+
+    // For non-students or missing Year field, use stored Semester value
     if (!this.Year || this.usertype !== 'student') {
-        return this.Semester; // Fallback to stored value for non-students
+        return this.Semester;
     }
 
     // Extract year from Year field (e.g., "2022" -> 22)
     const yearStr = this.Year.toString();
     const usnYear = parseInt(yearStr.slice(-2));
 
+    // Auto-calculate from USN
     return calculateCurrentSemester(usnYear);
 });
 

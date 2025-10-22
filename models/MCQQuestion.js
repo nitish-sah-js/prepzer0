@@ -3,22 +3,11 @@ const mongoose = require("mongoose");
 const MCQSchema = new mongoose.Schema({
     examId: { type: mongoose.Schema.Types.ObjectId, ref: "Exam", required: true }, // Links to Exam
     questionId: { type: mongoose.Schema.Types.ObjectId, ref: "MCQQuestion", index: true },
-    classification: { type: String,  trim: true,
-        enum: [
-            'Data Structures',
-            'Algorithms',
-            'DBMS',
-            'Object-Oriented Programming',
-            'Networking',
-            'Operating Systems',
-            'Software Engineering',
-            'Mathematics',
-            'Artificial Intelligence',
-            'Machine Learning',
-            'UNIX',
-            'other'
-          ]
-      },
+    classification: {
+        type: String,
+        trim: true
+        // Enum removed to allow dynamic classifications
+    },
     question: { type: String, required: true },
     options: [{ type: String, required: true }], // Array of options
     correctAnswer: { type: String, required: true }, // The correct option

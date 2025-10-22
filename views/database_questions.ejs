@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>Add Questions From Database</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #141D2F; /* Dark blue background */
+            background-color: #141D2F;
         }
         h1, h2 {
-            color: #0056b3; /* Darker blue for headings */
+            color: #0056b3;
         }
         .container {
             background: white;
@@ -66,12 +67,23 @@
             background-color: #5a6268;
             border-color: #5a6268;
         }
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
         .section-header {
             background-color: #e6f0ff;
             padding: 10px 15px;
             border-radius: 5px;
             margin: 25px 0 15px 0;
             border-left: 5px solid #1D4ED8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .selected-count {
             font-weight: bold;
@@ -96,9 +108,9 @@
             border-radius: 5px;
             border: 1px solid #ced4da;
         }
-        .back-btn { 
-            background: #6c757d; 
-            display: inline-block; 
+        .back-btn {
+            background: #6c757d;
+            display: inline-block;
             padding: 8px 16px;
             color: white;
             text-decoration: none;
@@ -119,6 +131,8 @@
             margin-top: 20px;
             font-weight: bold;
             font-size: 16px;
+            border: none;
+            cursor: pointer;
         }
         .done-btn:hover {
             background: #218838;
@@ -132,6 +146,80 @@
             padding-left: 10px;
             margin-top: 8px;
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-dialog {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            margin: 100px auto;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 0;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1D4ED8;
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: white;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close:hover {
+            opacity: 0.7;
+        }
+        .add-classification-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .add-classification-btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -140,7 +228,91 @@
     <h1 class="text-center mb-4">Add MCQ Questions From Database</h1>
     <p class="text-center">Exam: <strong><%= exam.name %></strong></p>
     <p class="text-center">MCQ Questions Required: <strong><%= exam.numMCQs - currentMCQCount %></strong></p>
-    
+
+    <!-- RANDOM SELECTION SECTION - MOVED TO TOP -->
+    <div class="section-header">
+        <h2 class="mb-0">Random Question Selection</h2>
+    </div>
+
+    <form id="randomSelectionForm" action="/admin/exam/<%= exam._id %>/database/random" method="POST">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="totalRandom" class="form-label"><strong>Total Random Questions</strong></label>
+                <input type="number" class="form-control" id="totalRandom" name="totalRandom" min="1" max="<%= exam.numMCQs - currentMCQCount %>">
+                <small class="text-muted">This will select random questions from all available questions.</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><strong>Difficulty Level (Optional)</strong></label>
+                <div class="difficulty-options">
+                    <div class="form-check">
+                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="easyRadio" value="easy">
+                        <label class="form-check-label" for="easyRadio">Easy</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="mediumRadio" value="medium">
+                        <label class="form-check-label" for="mediumRadio">Medium</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="hardRadio" value="hard">
+                        <label class="form-check-label" for="hardRadio">Hard</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="anyDifficulty" value="" checked>
+                        <label class="form-check-label" for="anyDifficulty">Any Difficulty</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="mt-4">Or select by classification:</h4>
+
+        <div id="classificationContainer">
+            <% classifications.forEach((classification, index) => { %>
+                <div class="classification-input">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label"><%= classification %></label>
+                            <input type="hidden" name="classifications[]" value="<%= classification %>">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Number of questions</label>
+                            <input type="number" class="form-control classification-count" name="counts[]" min="0" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Difficulty Level (Optional)</label>
+                            <select class="form-select classification-difficulty" name="classificationDifficulties[]">
+                                <option value="">Any Difficulty</option>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="done-btn">Add Random Questions</button>
+        </div>
+    </form>
+
+    <!-- MANUAL SELECTION SECTION -->
+    <div class="section-header">
+        <div>
+            <h2 class="mb-0">Manual Selection</h2>
+        </div>
+        <div>
+            <button type="button" class="add-classification-btn" id="addClassificationBtn" onclick="console.log('onclick triggered')">
+                <i class="fas fa-plus"></i> Add Classification
+            </button>
+            <!-- Debug button to test modal directly -->
+            <button type="button" class="btn btn-warning btn-sm ms-2" onclick="document.getElementById('addClassificationModal').style.display='block'">
+                Test Modal
+            </button>
+        </div>
+    </div>
+
     <div class="filters">
         <form id="filterForm" action="/admin/exam/<%= exam._id %>/database" method="GET">
             <div class="row">
@@ -170,12 +342,10 @@
         </form>
     </div>
 
-    <div class="section-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Available MCQ Questions</h2>
-            <div>
-                <span class="selected-count" id="selectedCount">0</span> questions selected
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Available MCQ Questions</h3>
+        <div>
+            <span class="selected-count" id="selectedCount">0</span> questions selected
         </div>
     </div>
 
@@ -184,7 +354,9 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th width="5%">Select</th>
+                        <th width="5%">
+                            <input type="checkbox" id="selectAll" class="question-checkbox" title="Select All">
+                        </th>
                         <th width="5%">#</th>
                         <th width="30%">Question</th>
                         <th width="30%">Options</th>
@@ -210,55 +382,177 @@
                 </tbody>
             </table>
         </div>
-        
+
         <div class="text-center mt-4">
             <button type="submit" class="done-btn">Add Selected Questions</button>
         </div>
     </form>
 
-    <div class="section-header mt-5">
-        <h2 class="mb-0">Random Question Selection</h2>
+    <div class="text-center mt-4">
+        <a href="/admin/exam/questions/<%= exam._id %>" class="back-btn">⬅ Back to Manage Questions</a>
     </div>
+</div>
 
-    <form id="randomSelectionForm" action="/admin/exam/<%= exam._id %>/database/random" method="POST">
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label for="totalRandom" class="form-label">Total Random Questions</label>
-                <input type="number" class="form-control" id="totalRandom" name="totalRandom" min="1" max="<%= exam.numMCQs - currentMCQCount %>">
-                <small class="text-muted">This will select random questions from all available questions.</small>
+<!-- Add Classification Modal -->
+<div id="addClassificationModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Classification</h3>
+                <button class="close" id="closeModalBtn">&times;</button>
             </div>
-            <div class="col-md-6">
-                <label class="form-label">Difficulty Level (Optional)</label>
-                <div class="difficulty-options">
-                    <div class="form-check">
-                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="easyRadio" value="easy">
-                        <label class="form-check-label" for="easyRadio">Easy</label>
+            <div class="modal-body">
+                <form id="addClassificationForm">
+                    <div class="mb-3">
+                        <label for="newClassification" class="form-label"><strong>Classification Name</strong></label>
+                        <input type="text" class="form-control" id="newClassification" required placeholder="e.g., Web Development, Cloud Computing">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> Add a new classification to select random questions from that category.<br>
+                            <strong>Note:</strong> The classification will appear in the Filter dropdown immediately.
+                        </small>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="mediumRadio" value="medium">
-                        <label class="form-check-label" for="mediumRadio">Medium</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="hardRadio" value="hard">
-                        <label class="form-check-label" for="hardRadio">Hard</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input difficulty-radio" type="radio" name="randomDifficulty" id="anyDifficulty" value="" checked>
-                        <label class="form-check-label" for="anyDifficulty">Any Difficulty</label>
-                    </div>
-                </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+                <button type="button" class="btn btn-success" id="saveClassificationBtn">Add Classification</button>
             </div>
         </div>
+    </div>
+</div>
 
-        <h4 class="mt-4">Or select by classification:</h4>
-        
-        <div id="classificationContainer">
-            <% classifications.forEach((classification, index) => { %>
-                <div class="classification-input">
+<script>
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded');
+    console.log('Classifications data:', <%- JSON.stringify(classifications || []) %>);
+
+    // Immediate test to check if elements exist
+    const testBtn = document.getElementById('addClassificationBtn');
+    const testModal = document.getElementById('addClassificationModal');
+    console.log('Initial check - Button exists:', !!testBtn);
+    console.log('Initial check - Modal exists:', !!testModal);
+
+    // Update selected count function
+    window.updateSelectedCount = function() {
+        const checkboxes = document.querySelectorAll('tbody .question-checkbox:checked');
+        document.getElementById('selectedCount').textContent = checkboxes.length;
+    };
+
+    // Select All functionality
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('tbody .question-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            updateSelectedCount();
+        });
+    }
+
+    // Add Classification Modal functions
+    const addClassificationBtn = document.getElementById('addClassificationBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const saveClassificationBtn = document.getElementById('saveClassificationBtn');
+    const modal = document.getElementById('addClassificationModal');
+
+    if (addClassificationBtn) {
+        console.log('Add Classification button found, adding event listener');
+        addClassificationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Add Classification button clicked');
+            if (modal) {
+                console.log('Modal found, displaying it');
+                modal.style.display = 'block';
+                document.getElementById('newClassification').focus();
+                console.log('Modal opened successfully');
+            } else {
+                console.error('Modal not found!');
+                alert('Error: Could not open the classification modal. Please refresh the page and try again.');
+            }
+        });
+    } else {
+        console.error('Add Classification button not found in DOM!')
+    }
+
+    function closeModal() {
+        if (modal) {
+            modal.style.display = 'none';
+            document.getElementById('newClassification').value = '';
+        }
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeModal);
+    }
+
+    if (cancelModalBtn) {
+        cancelModalBtn.addEventListener('click', closeModal);
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    // Add classification function
+    if (saveClassificationBtn) {
+        saveClassificationBtn.addEventListener('click', async function() {
+            const newClassification = document.getElementById('newClassification').value.trim();
+
+            if (!newClassification) {
+                alert('Please enter a classification name');
+                return;
+            }
+
+            // Check if classification already exists
+            const existingClassifications = <%- JSON.stringify(classifications || []) %>;
+            if (existingClassifications.includes(newClassification)) {
+                alert('This classification already exists');
+                return;
+            }
+
+            // Check if classification was already added in this session
+            const currentClassifications = Array.from(document.querySelectorAll('#classificationContainer input[type="hidden"]'))
+                .map(input => input.value);
+            if (currentClassifications.includes(newClassification)) {
+                alert('This classification has already been added in this session');
+                return;
+            }
+
+            // Call API to add classification
+            try {
+                const examId = '<%- exam._id %>';
+                console.log('Making API call to add classification:', newClassification);
+                const response = await fetch(`/admin/exam/${examId}/database/classification/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ classification: newClassification })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    alert(data.message || 'Failed to add classification');
+                    return;
+                }
+
+                console.log('Classification added to server:', data.classification);
+
+                // Add new classification to the form
+                const container = document.getElementById('classificationContainer');
+                const newDiv = document.createElement('div');
+                newDiv.className = 'classification-input';
+                newDiv.innerHTML = `
                     <div class="row">
                         <div class="col-md-4">
-                            <label class="form-label"><%= classification %></label>
-                            <input type="hidden" name="classifications[]" value="<%= classification %>">
+                            <label class="form-label"><strong>${newClassification}</strong> <span class="badge bg-success">New</span></label>
+                            <input type="hidden" name="classifications[]" value="${newClassification}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Number of questions</label>
@@ -274,138 +568,145 @@
                             </select>
                         </div>
                     </div>
-                </div>
-            <% }) %>
-        </div>
-        
-        <div class="text-center mt-4">
-            <button type="submit" class="done-btn">Add Random Questions</button>
-        </div>
-    </form>
+                `;
+                container.appendChild(newDiv);
 
-    <div class="text-center mt-4">
-        <a href="/admin/exam/questions/<%= exam._id %>" class="back-btn">⬅ Back to Manage Questions</a>
-    </div>
-</div>
+                // Add to filter dropdown
+                const filterSelect = document.getElementById('classification');
+                const newOption = document.createElement('option');
+                newOption.value = newClassification;
+                newOption.textContent = newClassification + ' (New)';
+                filterSelect.appendChild(newOption);
 
-<script>
-    function updateSelectedCount() {
-        const checkboxes = document.querySelectorAll('.question-checkbox:checked');
-        document.getElementById('selectedCount').textContent = checkboxes.length;
+                // Re-initialize event listeners for new classification
+                initializeClassificationListeners();
+
+                closeModal();
+
+                // Scroll to the new classification
+                newDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                alert(`Classification "${newClassification}" added successfully!\n\nIt now appears in the Filter dropdown and can be used for random selection.`);
+            } catch (error) {
+                console.error('Error adding classification:', error);
+                alert('An error occurred while adding the classification. Please try again.');
+            }
+        });
     }
 
-    // Initialize difficulty dropdowns based on count values
-    document.addEventListener('DOMContentLoaded', function() {
-        // Disable difficulty options when no questions are selected for a classification
+    function initializeClassificationListeners() {
         const classificationCounts = document.querySelectorAll('.classification-count');
         classificationCounts.forEach(countInput => {
             const difficultySelect = countInput.closest('.row').querySelector('.classification-difficulty');
-            
+
             // Set initial state
             if (parseInt(countInput.value) === 0) {
                 difficultySelect.disabled = true;
             }
-            
+
             // Add event listener for changes
             countInput.addEventListener('input', function() {
                 if (parseInt(this.value) > 0) {
                     difficultySelect.disabled = false;
                 } else {
                     difficultySelect.disabled = true;
-                    difficultySelect.value = ""; // Reset to "Any Difficulty"
+                    difficultySelect.value = "";
                 }
             });
         });
-        
+
         // Handle total random and classification selections being mutually exclusive
         const totalRandomInput = document.getElementById('totalRandom');
-        const difficultyRadios = document.querySelectorAll('.difficulty-radio');
-        
-        totalRandomInput.addEventListener('input', function() {
-            if (parseInt(this.value) > 0) {
-                // Disable classification counts
-                classificationCounts.forEach(input => {
-                    input.value = 0;
-                    const difficultySelect = input.closest('.row').querySelector('.classification-difficulty');
-                    difficultySelect.disabled = true;
-                    difficultySelect.value = "";
-                });
-            }
-        });
-        
+        if (totalRandomInput) {
+            totalRandomInput.addEventListener('input', function() {
+                if (parseInt(this.value) > 0) {
+                    classificationCounts.forEach(input => {
+                        input.value = 0;
+                        const difficultySelect = input.closest('.row').querySelector('.classification-difficulty');
+                        difficultySelect.disabled = true;
+                        difficultySelect.value = "";
+                    });
+                }
+            });
+        }
+
         classificationCounts.forEach(input => {
             input.addEventListener('input', function() {
                 if (parseInt(this.value) > 0) {
-                    // Disable total random
-                    totalRandomInput.value = "";
-                    
-                    // Reset difficulty radio buttons to "Any Difficulty"
-                    document.getElementById('anyDifficulty').checked = true;
+                    if (totalRandomInput) {
+                        totalRandomInput.value = "";
+                    }
+                    const anyDifficultyRadio = document.getElementById('anyDifficulty');
+                    if (anyDifficultyRadio) {
+                        anyDifficultyRadio.checked = true;
+                    }
                 }
             });
         });
-    });
+    }
+
+    // Initialize classification listeners
+    initializeClassificationListeners();
 
     // Validate that the random selection form doesn't exceed the required number of questions
-    document.getElementById('randomSelectionForm').addEventListener('submit', function(e) {
-        const totalRandomInput = document.getElementById('totalRandom');
-        const classificationInputs = document.querySelectorAll('.classification-count');
-        
-        let totalRandomValue = totalRandomInput.value ? parseInt(totalRandomInput.value) : 0;
-        let totalClassificationCount = 0;
-        
-        classificationInputs.forEach(input => {
-            totalClassificationCount += input.value ? parseInt(input.value) : 0;
+    const randomForm = document.getElementById('randomSelectionForm');
+    if (randomForm) {
+        randomForm.addEventListener('submit', function(e) {
+            const totalRandomInput = document.getElementById('totalRandom');
+            const classificationInputs = document.querySelectorAll('.classification-count');
+
+            let totalRandomValue = totalRandomInput.value ? parseInt(totalRandomInput.value) : 0;
+            let totalClassificationCount = 0;
+
+            classificationInputs.forEach(input => {
+                totalClassificationCount += input.value ? parseInt(input.value) : 0;
+            });
+
+            // Check if both methods are being used
+            if (totalRandomValue > 0 && totalClassificationCount > 0) {
+                alert('Please use either total random selection OR classification-based selection, not both.');
+                e.preventDefault();
+                return;
+            }
+
+            // Check if the total exceeds the required count
+            const maxRequired = <%= exam.numMCQs - currentMCQCount %>;
+            const totalToAdd = totalRandomValue > 0 ? totalRandomValue : totalClassificationCount;
+
+            if (totalToAdd > maxRequired) {
+                alert(`You can only add a maximum of ${maxRequired} questions.`);
+                e.preventDefault();
+            }
+
+            if (totalToAdd === 0) {
+                alert('Please specify the number of questions to add.');
+                e.preventDefault();
+            }
         });
-        
-        // Check if both methods are being used
-        if (totalRandomValue > 0 && totalClassificationCount > 0) {
-            alert('Please use either total random selection OR classification-based selection, not both.');
-            e.preventDefault();
-            return;
-        }
-        
-        // Check if the total exceeds the required count
-        const maxRequired = <%= exam.numMCQs - currentMCQCount %>;
-        const totalToAdd = totalRandomValue > 0 ? totalRandomValue : totalClassificationCount;
-        
-        if (totalToAdd > maxRequired) {
-            alert(`You can only add a maximum of ${maxRequired} questions.`);
-            e.preventDefault();
-        }
-        
-        if (totalToAdd === 0) {
-            alert('Please specify the number of questions to add.');
-            e.preventDefault();
-        }
-    });
+    }
 
     // Validate that manual selection doesn't exceed the required number of questions
-    document.getElementById('manualSelectionForm').addEventListener('submit', function(e) {
-        const checkboxes = document.querySelectorAll('.question-checkbox:checked');
-        const maxRequired = <%= exam.numMCQs - currentMCQCount %>;
-        
-        if (checkboxes.length > maxRequired) {
-            alert(`You can only add a maximum of ${maxRequired} questions.`);
-            e.preventDefault();
-        }
-        
-        if (checkboxes.length === 0) {
-            alert('Please select at least one question.');
-            e.preventDefault();
-        }
-    });
+    const manualForm = document.getElementById('manualSelectionForm');
+    if (manualForm) {
+        manualForm.addEventListener('submit', function(e) {
+            const checkboxes = document.querySelectorAll('tbody .question-checkbox:checked');
+            const maxRequired = <%= exam.numMCQs - currentMCQCount %>;
+
+            if (checkboxes.length > maxRequired) {
+                alert(`You can only add a maximum of ${maxRequired} questions.`);
+                e.preventDefault();
+            }
+
+            if (checkboxes.length === 0) {
+                alert('Please select at least one question.');
+                e.preventDefault();
+            }
+        });
+    }
+
+    console.log('All event listeners initialized');
+});
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-

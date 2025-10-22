@@ -4,21 +4,8 @@ const mcqQuestionSchema = new mongoose.Schema({
   classification: {
     type: String,
     // required: true,
-    trim: true,
-    enum: [
-        'Data Structures',
-        'Algorithms',
-        'DBMS',
-        'Object-Oriented Programming',
-        'Networking',
-        'Operating Systems',
-        'Software Engineering',
-        'Mathematics',
-        'Artificial Intelligence',
-        'Machine Learning',
-        'UNIX',
-        'other'
-      ]
+    trim: true
+    // Enum removed to allow dynamic classifications
   },
   question: {
     type: String,

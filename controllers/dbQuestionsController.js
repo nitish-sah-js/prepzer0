@@ -2,6 +2,9 @@ const Question = require('../models/MCQQuestion');
 const AllQuestion = require('../models/MCQschema');
 const Exam = require('../models/Exam');
 
+// Store for custom classifications (in-memory, will persist via questions)
+let customClassifications = [];
+
 /**
  * Display the database questions page with filtering options
  */
@@ -45,9 +48,12 @@ exports.showDatabaseQuestions = async (req, res) => {
         
         // Get all unique classifications for the dropdown
         const allQuestions = await AllQuestion.find({ questionType: 'mcq' });
-        const classifications = [...new Set(allQuestions.map(q => q.classification).filter(Boolean))];
+        const dbClassifications = [...new Set(allQuestions.map(q => q.classification).filter(Boolean))];
 
-        
+        // Merge database classifications with custom classifications
+        const classifications = [...new Set([...dbClassifications, ...customClassifications])].sort();
+
+
         res.render('database_questions', {
             exam,
             questions,
@@ -373,5 +379,45 @@ exports.addRandomQuestions = async (req, res) => {
     } catch (error) {
         console.error('Error adding random questions:', error);
         res.status(500).send('An error occurred while adding random questions');
+    }
+};
+
+/**
+ * Add a new classification (API endpoint)
+ */
+exports.addClassification = async (req, res) => {
+    try {
+        const { classification } = req.body;
+
+        if (!classification || !classification.trim()) {
+            return res.status(400).json({ success: false, message: 'Classification name is required' });
+        }
+
+        const trimmedClassification = classification.trim();
+
+        // Check if classification already exists in database
+        const existingQuestion = await AllQuestion.findOne({ classification: trimmedClassification });
+
+        if (existingQuestion) {
+            return res.status(400).json({
+                success: false,
+                message: 'This classification already exists in the database'
+            });
+        }
+
+        // Add to custom classifications array (in-memory)
+        if (!customClassifications.includes(trimmedClassification)) {
+            customClassifications.push(trimmedClassification);
+        }
+
+        return res.json({
+            success: true,
+            message: 'Classification added successfully',
+            classification: trimmedClassification
+        });
+
+    } catch (error) {
+        console.error('Error adding classification:', error);
+        res.status(500).json({ success: false, message: 'An error occurred while adding classification' });
     }
 };

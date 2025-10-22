@@ -388,6 +388,108 @@
     .btn-secondary:hover {
       background-color: #4a5873;
     }
+
+    /* Pagination Styles */
+    .pagination-container {
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+      margin-top: 20px;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background-color: var(--card-bg);
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--border-color);
+    }
+
+    .pagination-btn {
+      padding: 10px 18px;
+      background-color: var(--accent-color);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .pagination-btn:hover {
+      background-color: var(--hover-accent);
+      transform: translateY(-2px);
+    }
+
+    .pagination-btn.disabled {
+      background-color: var(--border-color);
+      color: var(--text-secondary);
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .pagination-pages {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pagination-number {
+      padding: 8px 14px;
+      background-color: var(--input-bg);
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border-color);
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .pagination-number:hover {
+      background-color: rgba(66, 133, 244, 0.2);
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+    }
+
+    .pagination-number.active {
+      background-color: var(--accent-color);
+      color: white;
+      border-color: var(--accent-color);
+      cursor: default;
+    }
+
+    .pagination-ellipsis {
+      padding: 8px 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 16px;
+      }
+
+      .pagination-btn {
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+
+      .pagination-number {
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 35px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -430,15 +532,18 @@
   </header>
 
   <div class="container">
-    <% if(students && students.length > 0) { %>
-      <div class="search-count"><%= students.length %> student<%= students.length === 1 ? '' : 's' %> found</div>
+    <% if(pagination && pagination.totalStudents > 0) { %>
+      <div class="search-count">
+        Showing <%= ((pagination.currentPage - 1) * pagination.limit) + 1 %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalStudents) %>
+        of <%= pagination.totalStudents %> student<%= pagination.totalStudents === 1 ? '' : 's' %>
+      </div>
     <% } %>
-    
+
     <div class="students-container" id="studentList">
       <% if(students && students.length > 0) { %>
         <% students.forEach(student => { %>
           <div class="student-card">
-            <button class="edit-btn" onclick="event.stopPropagation(); openEditModal('<%= student._id %>', '<%= student.fname %>', '<%= student.lname %>', '<%= student.USN %>', '<%= student.email %>', '<%= student.Department %>', '<%= student.Semester %>', '<%= student.phone || '' %>', '<%= student.Rollno || '' %>')">Edit</button>
+            <button class="edit-btn" onclick="event.stopPropagation(); openEditModal('<%= student._id %>', '<%= student.fname %>', '<%= student.lname %>', '<%= student.USN %>', '<%= student.email %>', '<%= student.Department %>', '<%= student.CurrentSemester || student.Semester %>', '<%= student.phone || '' %>', '<%= student.Rollno || '' %>')">Edit</button>
             <img class="student-avatar" src="<%= student.imageurl || 'https://randomuser.me/api/portraits/men/1.jpg' %>" alt="<%= student.name %>" onclick="location.href='/admin/students/<%= student._id %>/exams'" />
             <div class="student-info" onclick="location.href='/admin/students/<%= student._id %>/exams'">
               <div class="student-name"><%= student.fname || 'Student Name' %></div>
@@ -457,6 +562,60 @@
         </div>
       <% } %>
     </div>
+
+    <!-- Pagination Controls -->
+    <% if(pagination && pagination.totalPages > 1) { %>
+      <div class="pagination-container">
+        <div class="pagination">
+          <!-- Previous Button -->
+          <% if(pagination.hasPrevPage) { %>
+            <a href="?<%= new URLSearchParams({...currentFilters, page: pagination.currentPage - 1}).toString() %>" class="pagination-btn">
+              &laquo; Previous
+            </a>
+          <% } else { %>
+            <span class="pagination-btn disabled">&laquo; Previous</span>
+          <% } %>
+
+          <!-- Page Numbers -->
+          <div class="pagination-pages">
+            <%
+              const startPage = Math.max(1, pagination.currentPage - 2);
+              const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+
+              if(startPage > 1) { %>
+                <a href="?<%= new URLSearchParams({...currentFilters, page: 1}).toString() %>" class="pagination-number">1</a>
+                <% if(startPage > 2) { %>
+                  <span class="pagination-ellipsis">...</span>
+                <% } %>
+              <% }
+
+              for(let i = startPage; i <= endPage; i++) { %>
+                <% if(i === pagination.currentPage) { %>
+                  <span class="pagination-number active"><%= i %></span>
+                <% } else { %>
+                  <a href="?<%= new URLSearchParams({...currentFilters, page: i}).toString() %>" class="pagination-number"><%= i %></a>
+                <% } %>
+              <% }
+
+              if(endPage < pagination.totalPages) { %>
+                <% if(endPage < pagination.totalPages - 1) { %>
+                  <span class="pagination-ellipsis">...</span>
+                <% } %>
+                <a href="?<%= new URLSearchParams({...currentFilters, page: pagination.totalPages}).toString() %>" class="pagination-number"><%= pagination.totalPages %></a>
+              <% } %>
+          </div>
+
+          <!-- Next Button -->
+          <% if(pagination.hasNextPage) { %>
+            <a href="?<%= new URLSearchParams({...currentFilters, page: pagination.currentPage + 1}).toString() %>" class="pagination-btn">
+              Next &raquo;
+            </a>
+          <% } else { %>
+            <span class="pagination-btn disabled">Next &raquo;</span>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
   </div>
 
   <!-- Edit Student Modal -->
