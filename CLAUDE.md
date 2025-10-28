@@ -366,6 +366,33 @@ No Node.js test framework configured.
 - Prevents students from manipulating other students' activity records
 - Security comment added: `// SECURITY FIX: Use authenticated user's ID only`
 
+## Recent Critical Fixes (October 29, 2025)
+
+### 1. Submission Evaluation Bug - FIXED
+- **Issue**: All answers marked wrong with 0 score
+- **Cause**: Answer indices compared with text values (type mismatch)
+- **Files Fixed**:
+  - `dashboardcontroller.js` (lines 435-467) - Scoring logic
+  - `reportModel.js` (lines 268-309) - Report generation
+  - `test3.ejs` (lines 3796-3806) - Answer submission format
+
+### 2. Answer Restoration Bug - FIXED
+- **Issue**: Only one answer showing when students return after leaving
+- **Cause**: Inconsistent data formats and wrong condition checks
+- **Files Fixed**:
+  - `dashboardcontroller.js` (lines 204-236, 306-333)
+  - `test3.ejs` (lines 2442-2444, 3418-3435)
+
+### 3. Department Access Issue - FIXED
+- **Issue**: 14,000+ students couldn't access system
+- **Cause**: Missing department codes in database
+- **Solution**: Run `node scripts/addRequiredDepartments.js`
+
+### 4. Security Vulnerability - FIXED
+- **Issue**: eval() function with user input
+- **Risk**: Remote code execution
+- **Fixed**: `evaluationService.js` line 542
+
 ## Partial Implementations & Recent Features
 
 **Partial Submissions (PartialSubmission.js)**:
@@ -374,6 +401,12 @@ No Node.js test framework configured.
 - Tracks `timeRemaining`, `lastSavedAt`, `examStartedAt`
 - Static method: `cleanupOldPartials(daysOld)` - removes submissions older than N days
 - Allows students to resume exams after disconnection
+- **Auto-Save Timing**: Initial save after 5 seconds, then every 30 seconds
+
+**Answer Storage Format** (Updated October 2025):
+- Answers now stored as numeric indices (0, 1, 2, 3)
+- Backend converts indices to text for evaluation
+- Backward compatible with legacy text-based answers
 
 **Coding Exams**: Models and views exist, controller logic missing
 - Models: `CodingQuestion.js`, `Codingschema.js`
@@ -424,6 +457,10 @@ No Node.js test framework configured.
 - `BULK_STUDENT_UPLOAD_FEATURE.md` - Bulk upload guide
 - `ATTENDANCE_TRACKING_FEATURE.md` - Attendance tracking documentation
 - `SECURITY_AUDIT.md` - Security assessment report
+- `SECURITY_FIX_REPORT.md` - October 2025 security fixes
+- `ANSWER_RESTORATION_FIX.md` - Answer restoration bug fix details
+- `PARTIAL_SUBMISSION_ENHANCEMENT.md` - Partial submission system improvements
+- `SUBMISSION_BUG_FIX.md` - Submission evaluation bug fix
 - `scripts/README.md` - Database scripts documentation
 - `templates/student_upload_template.csv` - CSV template
 
