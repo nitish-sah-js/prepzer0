@@ -136,15 +136,8 @@ OR ExamCandidate exists             Submit answers   Camera captures → S3
 
 ### Three Upload Types (config/upload.js)
 1. **CSV**: MCQ questions, 5MB max, disk storage (`uploads/mcq-{random}.csv`)
-   - MIME types: `text/csv`, `application/csv`, `text/comma-separated-values`, `application/vnd.ms-excel`
-   - Extension validation: `.csv` only
 2. **Images**: Integrity monitoring, 2MB max, memory → S3
-   - MIME types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`
-   - Extensions: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
-   - Magic bytes verified in app.js (PNG: 89504e47, JPEG: ffd8ff*, GIF: 47494638, WebP: 52494646)
 3. **Excel**: Exam candidates, 10MB max, memory storage
-   - MIME types: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (.xlsx), `application/vnd.ms-excel` (.xls)
-   - Extensions: `.xlsx`, `.xls`
 
 ### Image Security (app.js:300-395)
 ```javascript
@@ -183,34 +176,6 @@ Default departments (code → name):
 
 Seed with: `npm run seed:departments`
 
-## MCQ Question System
-
-### Schema Requirements
-- Exactly 4 options per question
-- One correct answer (string matching an option)
-- Difficulty: easy, medium, hard
-
-### Dynamic Classification (views/database_questions.ejs)
-- Add custom classifications via modal UI
-- POST `/admin/exam/{examId}/database/classification/add`
-- Stored in-memory during session
-
-## Bulk Student Upload
-
-### CSV Format (required fields)
-```csv
-email,usn,department,semester,fname,lname,phone,imageurl
-student1@example.com,1BY22CS001,cs,1,John,Doe,9876543210,
-```
-
-### Features
-- Common password for all uploaded students
-- Auto-approval: `userallowed: true`, `active: true`
-- Year auto-extracted from USN
-- Duplicate detection and detailed error reporting
-
-Route: `/admin/addbulckstudent`
-
 ## Key Controllers
 
 | Controller | Primary Responsibilities |
@@ -225,45 +190,22 @@ Route: `/admin/addbulckstudent`
 | reportController | Exam reports and analytics |
 | departmentcontroller | Department CRUD operations |
 
-## Integrity Monitoring (views/test3.ejs)
-
-Client-side events → POST `/update-integrity`:
-- Tab changes, window focus loss
-- Copy/paste attempts
-- Fullscreen exit, mouse exit
-- Camera captures → POST `/save-image` → S3
-
 ## Important API Endpoints (app.js)
-
-These endpoints are defined directly in app.js (not in route files):
 
 ### Session & Authentication
 - `GET /logout` - Clears session, regenerates session ID, clears `currentSessionId` (students only)
 - `GET /api/check-session` - Returns JSON: `{valid: true/false, reason: string}`
-  - Used by client to verify if session is still valid
-  - Reasons: `not_authenticated`, `user_not_found`, `session_mismatch`
 
 ### Integrity Monitoring
 - `POST /update-integrity` - Records integrity violations
-  - Body: `{examId, userId, eventType}`
-  - eventType: `tabChanges`, `mouseOuts`, `fullscreenExits`, `copyAttempts`, `pasteAttempts`, `focusChanges`
-  - Uses `$inc` to increment violation count, sets `lastEvent`
-  - Creates document with `upsert: true` if doesn't exist
-
 - `POST /save-image` - Uploads integrity camera captures to S3
-  - Middleware: `imageUpload.single('image')`, `handleUploadError`
-  - Body: `{userId, examId}` + image file
-  - Validates: ObjectId format, file magic bytes (PNG/JPEG/GIF/WebP)
-  - S3 path: `integrity/{usn}/{examId}/captured-{random}.{ext}`
-  - Returns: `{success: bool, message: string, path: string}`
-  - Server-side encryption: AES256
 
 ## Environment Variables
 
 ```env
 # Server
-PORT=80                      # Server port
-NODE_ENV=production         # Environment mode
+PORT=80
+NODE_ENV=production
 
 # MongoDB
 MONGODB_URI=mongodb+srv://...
@@ -286,358 +228,91 @@ EMAIL_USER=services@prepzer0.co.in
 EMAIL_PASSWORD=...
 ```
 
-## Database Management Scripts
+## Critical Gotchas & Patterns
 
-```bash
-# Maintenance
-npm run cleanup:sessions     # Clean orphaned ActivityTracker/Submissions
-npm run audit:database       # Database integrity check
-npm run clean:database       # Full database cleanup/reset
+### Database Quirks
+- **Collection name mismatch**: ActiveSession model → `activitytrackers` collection
+- **CurrentSemester is virtual**: Calculated from USN year unless `currentSemesterOverride` is set
+- **PartialSubmission unique index**: Only one partial submission per student per exam
+- **ActivityTracker TTL**: 7-day auto-cleanup via MongoDB TTL index
 
-# Data seeding
-npm run seed:departments                  # Initial departments
-node scripts/populate-students.js         # Test students
-node scripts/populate-mcq-questions.js    # MCQ questions
+### Authentication Gotchas
+- **Passport username field is `email`**: Not typical 'username'
+- **Teachers need dual approval**: `active: true` (email verified) AND `userallowed: true` (admin approved)
+- **Session validation only for students**: Teachers/admins can use multiple devices
 
-# Utilities
-node scripts/recalculate-scores.js       # Fix submission scores
-node scripts/create-admin.js             # Create admin user
-```
-
-## Orphaned Data Handling
-
-When Users are deleted with active sessions/submissions:
-- ActivityTracker sessions → marked offline
-- Submissions → displayed with "[DELETED USER]" placeholder
-- Data preserved (scores, timestamps)
-
-**Best practice**: Implement soft deletes for Users with submissions
-
-## Testing
-
-Python Selenium tests in `/test/`:
-```bash
-cd test
-pip install -r requirements.txt
-python create_test_accounts.py    # Setup
-python test_chrome.py             # Run tests
-```
-
-No Node.js test framework configured.
-
-## Recent UI/UX Improvements (2025)
-
-### Exam Page (test3.ejs)
-**Dark Mode Toggle Fix**:
-- Issue: Toggle button not working due to function hoisting issue
-- Fix: Moved `setupDarkModeToggle()` function definition before `DOMContentLoaded` event listener (line 2354)
-- Added call for returning students (line 2483) and new students (line 3012)
-- Changed from `<div>` to `<button>` element for better event handling (line 800)
-- Used direct `onclick` property instead of `addEventListener` for reliability
-
-**Light Mode Visibility**:
-- Fixed white text on white background issue
-- Changed question/section titles from `#fff` to `#1f2937` (lines 34-48)
-- Added proper contrast for all text elements (p, li, span, div, strong, b)
-- Added dark theme overrides (lines 4031-4058) to maintain readability in dark mode
-
-**Question Header Contrast**:
-- Enhanced `.question-number` styling: pure white (#ffffff), bold (700), larger (1.1rem), text-shadow (line 222-228)
-- Added dark theme specific styling for question headers (lines 4096-4103)
-- Ensures "Question N" text is clearly visible against blue background in both themes
-
-### Student Management (allstudentsprofile.ejs, admincontroller.js)
-**Dynamic Department Loading**:
-- Fixed edit modal to show latest departments from database instead of hardcoded values
-- Added `Department` model import to admincontroller.js (line 13)
-- Modified `allStudents` function to fetch and pass departments (lines 174-255)
-- Implemented case-insensitive department matching in edit modal (lines 714-724)
-
-**Bulk Delete Functionality**:
-- Added separate bulk delete button with checkbox selection (lines 628-667)
-- Implemented safety checks: prevents deleting students with exam submissions
-- Added confirmation dialog requiring "DELETE" input for bulk operations
-- New routes: `DELETE /admin/students/:studentId/delete`, `POST /admin/students/bulk-delete`
-- Uses MongoDB aggregation to check for related submissions before deletion
-
-### Security Fixes
-**IDOR Vulnerability (activeSessionController.js)**:
-- Fixed: Using `req.user._id` instead of accepting `userId` from request body (lines 9, 80)
-- Prevents students from manipulating other students' activity records
-- Security comment added: `// SECURITY FIX: Use authenticated user's ID only`
-
-## Recent Critical Fixes (October 29, 2025)
-
-### 1. Submission Evaluation Bug - FIXED
-- **Issue**: All answers marked wrong with 0 score
-- **Cause**: Answer indices compared with text values (type mismatch)
-- **Files Fixed**:
-  - `dashboardcontroller.js` (lines 435-467) - Scoring logic
-  - `reportModel.js` (lines 268-309) - Report generation
-  - `test3.ejs` (lines 3796-3806) - Answer submission format
-
-### 2. Answer Restoration Bug - FIXED
-- **Issue**: Only one answer showing when students return after leaving
-- **Cause**: Inconsistent data formats and wrong condition checks
-- **Files Fixed**:
-  - `dashboardcontroller.js` (lines 204-236, 306-333)
-  - `test3.ejs` (lines 2442-2444, 3418-3435)
-
-### 3. Department Access Issue - FIXED
-- **Issue**: 14,000+ students couldn't access system
-- **Cause**: Missing department codes in database
-- **Solution**: Run `node scripts/addRequiredDepartments.js`
-
-### 4. Security Vulnerability - FIXED
-- **Issue**: eval() function with user input
-- **Risk**: Remote code execution
-- **Fixed**: `evaluationService.js` line 542
-
-## Partial Implementations & Recent Features
-
-**Partial Submissions (PartialSubmission.js)**:
-- Auto-save exam progress every 30 seconds
-- Compound index: `{ exam: 1, student: 1 }` (unique)
-- Tracks `timeRemaining`, `lastSavedAt`, `examStartedAt`
-- Static method: `cleanupOldPartials(daysOld)` - removes submissions older than N days
-- Allows students to resume exams after disconnection
-- **Auto-Save Timing**: Initial save after 5 seconds, then every 30 seconds
-
-**Answer Storage Format** (Updated October 2025):
-- Answers now stored as numeric indices (0, 1, 2, 3)
-- Backend converts indices to text for evaluation
-- Backward compatible with legacy text-based answers
-
-**Coding Exams**: Models and views exist, controller logic missing
-- Models: `CodingQuestion.js`, `Codingschema.js`
-- Views: `add_coding.ejs`, `edit_coding.ejs`
-- Missing: Execution environment, test case validation
-
-**Services Layer**: `/services/` directory empty
-
-## Security Notes
-
-- Helmet.js commented out (app.js:56)
-- Magic bytes verification for image uploads
-- S3 server-side encryption (AES256)
-- Session encryption with SESSION_CRYPTO_SECRET
-- MongoDB sanitization, XSS protection, HPP prevention
-
-## Troubleshooting
-
-### Session Issues
-- Clear cookies for unexpected logouts
-- Verify SESSION_SECRET and SESSION_CRYPTO_SECRET set
-- Check MongoDB session store connection
-
-### File Upload Failures
-- Verify AWS credentials in .env
-- Check S3 bucket permissions
-- Confirm file size limits (CSV: 5MB, Images: 2MB, Excel: 10MB)
-
-### Classification Button Not Working
-- Check browser console for errors
-- Clear browser cache
-- Verify route exists: POST `/admin/exam/{examId}/database/classification/add`
-
-### CSS Not Updating
-- Run `npm run build:css`
-- Clear browser cache
-- Check `public/css/style.css` generated from `public/css/landing.css`
-
-### Dark Mode Toggle Not Working (test3.ejs)
-- Check if `setupDarkModeToggle()` function is defined BEFORE DOMContentLoaded
-- Verify function is called for BOTH new students and returning students (with saved answers)
-- Ensure button element exists: `<button id="darkModeToggle">`
-- Check browser console for "Dark mode toggle initialized" message
-- Common issue: Function hoisting - function must be defined before it's called in event handlers
-
-## Additional Documentation
-
-- `BULK_STUDENT_UPLOAD_FEATURE.md` - Bulk upload guide
-- `ATTENDANCE_TRACKING_FEATURE.md` - Attendance tracking documentation
-- `SECURITY_AUDIT.md` - Security assessment report
-- `SECURITY_FIX_REPORT.md` - October 2025 security fixes
-- `ANSWER_RESTORATION_FIX.md` - Answer restoration bug fix details
-- `PARTIAL_SUBMISSION_ENHANCEMENT.md` - Partial submission system improvements
-- `SUBMISSION_BUG_FIX.md` - Submission evaluation bug fix
-- `scripts/README.md` - Database scripts documentation
-- `templates/student_upload_template.csv` - CSV template
-
-## Important Implementation Details
-
-### Request Flow Architecture
-```
-HTTP Request → server.js (port 80/3000)
-    ↓
-app.js middleware chain:
-  1. Body parsers (JSON, URL-encoded, 100MB limit)
-  2. Security: mongoSanitize, HPP, XSS
-  3. Session (MongoStore + encryption)
-  4. Passport authentication
-  5. validateSingleSession (single-device enforcement)
-  6. Flash messaging
-    ↓
-Route matching → routes/*.js
-    ↓
-Route middleware (requireAuth, requireStudent, requireAdmin)
-    ↓
-Controller function → Models → MongoDB
-    ↓
-Response (render/json/redirect)
-```
-
-### Route Structure
-```
-routes/
-├── home.js           → "/" - Landing page, home routes
-├── authenticate.js   → "/authenticate" - Login, signup, password reset
-├── dashboard.js      → "/dashboard" - Student exam interface (requireStudent)
-├── admin.js          → "/admin" - Teacher/admin panel (requireAdmin)
-├── supadmin.js       → "/supadmin" - Super admin panel (requireSuperAdmin)
-├── profile.js        → "/profile" - User profile management
-└── userauth.js       → "/user" - User authentication utilities
-```
-
-**Route-to-Controller Mapping**:
-- `/authenticate/*` → authenticatecontroller
-- `/dashboard/*` → dashboardcontroller, activeSessionController
-- `/admin/*` → admincontroller, examcontroller, dbQuestionsController, bulkStudentController, departmentcontroller, reportController
-- `/supadmin/*` → supadmin controller
-- `/profile/*` → profilecontroller
-- `/` → homecontroller
-
-### Database Collection Names (Important for Queries)
-Some models have different collection names than their model names:
-- `ActiveSession` model → `activitytrackers` collection
-- `User` model → `users` collection
-- `Exam` model → `exams` collection
-
-### Role-Based Access Control Patterns (middleware/auth.js)
-```javascript
-// Student routes (single-device enforced on exam routes)
-/dashboard                → requireStudent
-/dashboard/test/*         → requireStudent + validateSingleSession
-
-// Teacher/Admin routes (multi-device allowed)
-/admin                    → requireAdmin (allows both 'admin' and 'teacher' usertype)
-/admin/create_exam        → requireAdmin
-
-// Super Admin routes
-/supadmin                 → requireSuperAdmin (usertype='admin' AND admin_access=true)
-
-// API versions (return JSON instead of rendering views)
-requireAuthAPI            → 401 JSON if not authenticated
-requireAdminAPI           → 401/403 JSON for admin/teacher access
-```
-
-**Middleware Functions**:
-- `requireAuth` - Any authenticated user, redirects to `/authenticate/login`
-- `requireAdmin` - Admin OR Teacher, redirects to `/admin/login`, 403 error page for wrong role
-- `requireStudent` - Students only, redirects to `/authenticate/login`, 403 error page for wrong role
-- `requireSuperAdmin` - Admin with `admin_access: true`, redirects to `/admin/login`
-- `requireAuthAPI` / `requireAdminAPI` - Same as above but returns JSON responses
-
-### Exam Eligibility Logic (dashboardcontroller.js)
-Students see an exam if EITHER:
-1. **Department + Semester match**: `exam.departments.includes(student.Department) && exam.semester === student.CurrentSemester`
-2. **ExamCandidate exists**: `ExamCandidate.find({ exam: examId, usn: student.USN })`
-
-Both paths are queried and merged (union of results).
-
-### Activity Tracking (Real-time)
-```javascript
-// Client-side (test3.ejs)
-Every 30 seconds: POST /dashboard/see-active
-  → Updates ActivityTracker.lastPingTimestamp
-  → Adds entry to pingHistory (if 30+ seconds since last)
-  → Sets status: 'active'
-
-// Partial submission auto-save (test3.ejs)
-Every 30 seconds: Auto-saves exam progress to PartialSubmission
-  → Saves mcqAnswers, codingAnswers, timeRemaining
-  → Updates lastSavedAt timestamp
-  → Allows resuming exam after disconnection
-
-// Server-side
-No ping for extended period → status remains 'active' (not auto-changed to 'offline')
-Only changed to 'offline' on explicit submission or leave action
-```
-
-### Auto-Scoring Implementation
-```javascript
-// On submission (dashboardcontroller.postStartExam)
-score = 0
-for each question in exam.mcqQuestions:
-  studentAnswer = mcqAnswers.find(a => a.questionId === question._id)
-  if (studentAnswer.selectedOption === question.correctAnswer):
-    score += question.marks
-```
-
-### Common Gotchas
-
-1. **Session validation only affects students on exam routes** - Teachers/admins can use multiple devices
-2. **CurrentSemester is virtual** - Calculated from USN year unless `currentSemesterOverride` is set
-3. **Exam validation is pre-save** - Must have (dept+sem) OR excelCandidates, never both
-4. **Collection name mismatch** - ActiveSession model uses `activitytrackers` collection
-5. **Image upload requires magic bytes** - Not just MIME type validation (double validation in multer + app.js)
-6. **Passport username field is `email`** - Not typical 'username'
-7. **ActivityTracker has 7-day TTL** - Auto-cleanup via MongoDB TTL index
-8. **Teachers need two approvals** - Both `active: true` (email verified) AND `userallowed: true` (admin approved)
-9. **PartialSubmission has unique compound index** - Only one partial submission per student per exam
-10. **File upload configurations are separate** - CSV (disk storage), Images (memory→S3), Excel (memory)
-11. **Session storage uses MongoDB with encryption** - `SESSION_CRYPTO_SECRET` encrypts session data
-12. **Client session validation** - `/api/check-session` endpoint for real-time session validity checks
-13. **Dark mode toggle requires early function definition** - Must be defined before DOMContentLoaded (test3.ejs line 2354)
-14. **Returning students need separate initialization** - Students with saved answers bypass normal setup, need explicit dark mode call (line 2483)
-15. **Department dropdown case sensitivity** - Edit modal uses case-insensitive matching for backward compatibility with old data
-16. **Bulk delete safety** - Students with submissions cannot be deleted to prevent orphaned data
+### File Upload Requirements
+- **Image magic bytes required**: Not just MIME type, actual file signature validation
+- **Three separate upload configs**: CSV (disk), Images (memory→S3), Excel (memory)
+- **S3 server-side encryption**: AES256 enabled
 
 ### Controller Naming Convention
-Controllers use `getcontrol` and `postcontrol` method names (not camelCase like `getControl`):
+Controllers use `getcontrol` and `postcontrol` method names (not camelCase):
 ```javascript
 exports.getcontrol = async (req, res) => { ... }
 exports.postcontrol = async (req, res) => { ... }
-exports.logincontrol = async (req, res) => { ... }
 ```
 
-### When Making Changes
+### Recent Critical Fixes (October 2025)
 
-**Before modifying User model:**
+**Dark Mode Toggle (test3.ejs)**:
+- Function must be defined BEFORE DOMContentLoaded (line 2354)
+- Returning students need separate initialization (line 2483)
+- Changed from `<div>` to `<button>` for better event handling
+
+**Submission Evaluation Bug**:
+- Fixed: Answer indices compared with text values (type mismatch)
+- Files: dashboardcontroller.js (lines 435-467), reportModel.js (lines 268-309)
+
+**Answer Restoration Bug**:
+- Fixed: Only one answer showing when students return
+- Files: dashboardcontroller.js (lines 204-236, 306-333), test3.ejs (lines 2442-2444)
+
+**Security Vulnerability**:
+- Fixed: eval() function with user input in evaluationService.js line 542
+
+## When Making Changes
+
+### Before modifying User model:
 - Consider impact on single-device enforcement (currentSessionId)
 - Consider impact on semester calculation (CurrentSemester virtual)
 - Check for orphaned references if deleting users with submissions
 
-**Before modifying Exam model:**
+### Before modifying Exam model:
 - Test pre-save validation (departments+semester vs excelCandidates)
 - Update exam eligibility queries in dashboardcontroller
 - Check ExamCandidate associations
 
-**Before modifying session logic:**
+### Before modifying session logic:
 - Remember: only affects students on exam routes
 - Test multi-device access for teachers/admins
 - Verify SESSION_SECRET and SESSION_CRYPTO_SECRET set
 
-**Before modifying file uploads:**
-- Update magic bytes validation if adding new file types (both in config/upload.js and app.js)
+### Before modifying file uploads:
+- Update magic bytes validation if adding new file types
 - Check S3 bucket permissions for new paths
 - Verify file size limits in config/upload.js
-- Update handleUploadError middleware for custom error messages
 
-**Before modifying logout flow:**
-- Remember: only students have `currentSessionId` cleared on logout (app.js:192-224)
-- Session is regenerated on logout to prevent session fixation
-- Teacher/admin logout does NOT clear `currentSessionId` (they don't use single-device enforcement)
-
-**Before modifying authentication:**
-- Passport deserializeUser returns `done(null, false)` if user not found (not an error)
-- This prevents server crashes when deleted users have active sessions
-- Login validation is in Passport LocalStrategy (app.js:114-163), not in controllers
-
-**Before modifying exam page (test3.ejs):**
+### Before modifying exam page (test3.ejs):
 - JavaScript functions must be defined BEFORE they're called in DOMContentLoaded
-- Test with BOTH new students (first time) AND returning students (with saved answers)
-- Returning students bypass the start overlay and need separate initialization
-- Check both light mode and dark mode for proper contrast and visibility
-- Test all interactive elements (buttons, toggles) work in both themes
-- Consider CSS specificity: dark theme overrides must be specific enough to override base styles
+- Test with BOTH new students AND returning students (with saved answers)
+- Check both light mode and dark mode for proper contrast
+
+## Partial Submission System
+
+**Auto-Save Timing**: Initial save after 5 seconds, then every 30 seconds
+- Compound index: `{ exam: 1, student: 1 }` (unique)
+- Tracks `timeRemaining`, `lastSavedAt`, `examStartedAt`
+- Allows students to resume exams after disconnection
+
+## Additional Documentation
+
+- `scripts/README.md` - Database scripts documentation
+- `test/README.md` - Testing automation guide
+- `BULK_STUDENT_UPLOAD_FEATURE.md` - Bulk upload guide
+- `ATTENDANCE_TRACKING_FEATURE.md` - Attendance tracking
+- `SECURITY_AUDIT.md` - Security assessment
+- `SECURITY_FIX_REPORT.md` - October 2025 security fixes
+- `ANSWER_RESTORATION_FIX.md` - Answer restoration bug fix
+- `PARTIAL_SUBMISSION_ENHANCEMENT.md` - Partial submission improvements
+- `SUBMISSION_BUG_FIX.md` - Submission evaluation bug fix

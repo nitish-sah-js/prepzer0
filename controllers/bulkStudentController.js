@@ -163,7 +163,7 @@ exports.postBulkStudentUpload = async (req, res) => {
           USN: usn,
           Department: department, // From CSV file (required)
           Semester: semester,
-          currentSemesterOverride: semester,
+
           // From CSV file (required)
           Year: year, // Extracted from USN
           usertype: "student",

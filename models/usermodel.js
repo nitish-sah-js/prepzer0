@@ -132,9 +132,20 @@ UserSchema.virtual('CurrentSemester').get(function() {
         return this.currentSemesterOverride;
     }
 
-    // For non-students or missing Year field, use stored Semester value
-    if (!this.Year || this.usertype !== 'student') {
+    // For non-students, use stored Semester value
+    if (this.usertype !== 'student') {
         return this.Semester;
+    }
+
+    // If Semester field is explicitly set (e.g., from CSV upload), use it
+    // This ensures manually uploaded students show their correct semester
+    if (this.Semester !== null && this.Semester !== undefined) {
+        return this.Semester;
+    }
+
+    // Only auto-calculate if no Semester is set and Year exists
+    if (!this.Year) {
+        return this.Semester || null;
     }
 
     // Extract year from Year field (e.g., "2022" -> 22)

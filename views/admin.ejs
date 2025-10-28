@@ -1042,14 +1042,23 @@ html >
                         font-size: 14px;
                     ">
                         <option value="all">All Departments</option>
-                        <option value="cs">CS - Computer Science</option>
-                        <option value="is">IS - Information Science</option>
-                        <option value="ec">EC - Electronics & Communication</option>
-                        <option value="et">ET - Electronics & Telecommunication</option>
-                        <option value="ai">AI - Artificial Intelligence</option>
-                        <option value="cv">CV - Civil Engineering</option>
-                        <option value="ee">EE - Electrical Engineering</option>
-                        <option value="ad">AD - Automation & Robotics</option>
+                        <% if (typeof departments !== 'undefined' && departments && departments.length > 0) { %>
+                            <% departments.forEach(dept => { %>
+                                <option value="<%= dept.code.toLowerCase() %>">
+                                    <%= dept.code.toUpperCase() %> - <%= dept.name %>
+                                </option>
+                            <% }); %>
+                        <% } else { %>
+                            <!-- Fallback to default departments if none loaded -->
+                            <option value="cs">CS - Computer Science</option>
+                            <option value="is">IS - Information Science</option>
+                            <option value="ec">EC - Electronics & Communication</option>
+                            <option value="et">ET - Electronics & Telecommunication</option>
+                            <option value="ai">AI - Artificial Intelligence</option>
+                            <option value="cv">CV - Civil Engineering</option>
+                            <option value="ee">EE - Electrical Engineering</option>
+                            <option value="ad">AD - Automation & Robotics</option>
+                        <% } %>
                     </select>
                 </div>
 

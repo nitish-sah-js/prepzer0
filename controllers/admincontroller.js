@@ -21,10 +21,17 @@ exports.getcontrol = async (req, res) => {
 
     if (Userprofile.usertype == "teacher" || Userprofile.usertype == "admin") {
       const exams = await Exam.find().populate("createdBy", "name")
+
+      // Fetch active departments from database
+      const departments = await Department.find({ active: true }).sort({
+        code: 1,
+      })
+
       res.render("admin", {
         pic: Userprofile.imageurl,
         logged_in: "true",
         exams: exams,
+        departments: departments, // Pass departments to view
       })
     } else {
       res.redirect("/admin/login")
