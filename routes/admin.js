@@ -73,6 +73,8 @@ router.route("/mcq-questions").get(mcqquestions.getAllMCQQuestions)
 router.route("/profile/students").get(admincontroller.allStudents)
 router.route("/students/:studentId/exams").get(admincontroller.getStudentExams)
 router.route("/students/:studentId/edit").post(admincontroller.editStudent)
+router.route("/students/:studentId/delete").delete(admincontroller.deleteStudent)
+router.route("/students/bulk-delete").post(admincontroller.bulkDeleteStudents)
 
 router.route("/exam/candidates/:examId").get(admincontroller.examCandidates)
 router.route("/exam/:examId/attendance").get(admincontroller.getAttendancePage)

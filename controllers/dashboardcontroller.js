@@ -203,10 +203,36 @@ exports.getStartExam = async (req, res) => {
       // Convert MCQ answers
       if (partialSubmission.mcqAnswers && partialSubmission.mcqAnswers.length > 0) {
         partialSubmission.mcqAnswers.forEach(answer => {
+          // Always ensure we have a numeric index for proper restoration
+          let optionIndex;
+
+          // Handle various formats that might exist in database
+          if (typeof answer.selectedOption === 'number') {
+            // Already a number, use it
+            optionIndex = answer.selectedOption;
+          } else if (typeof answer.selectedOption === 'string') {
+            // Try to parse as number
+            const parsed = parseInt(answer.selectedOption);
+            if (!isNaN(parsed)) {
+              optionIndex = parsed;
+            } else {
+              // It's text (old data), we can't restore it properly
+              console.warn(`Cannot restore text answer for question ${answer.questionId}: ${answer.selectedOption}`);
+              // Skip this answer since we don't know the index
+              return;
+            }
+          } else {
+            console.warn(`Unknown answer format for question ${answer.questionId}:`, answer.selectedOption);
+            return;
+          }
+
+          // Store both as the same numeric value for consistency
           savedAnswers.mcq[answer.questionId] = {
-            value: answer.selectedOption,
-            index: answer.selectedOption
+            value: optionIndex,
+            index: optionIndex
           };
+
+          console.log(`Restored answer for question ${answer.questionId}: index=${optionIndex}, type=${typeof optionIndex}`);
         });
       }
 
@@ -220,11 +246,20 @@ exports.getStartExam = async (req, res) => {
         });
       }
 
-      timeRemaining = partialSubmission.timeRemaining;
+      // Calculate accurate time remaining based on when the exam started and current time
+      const examDurationInSeconds = exam.duration * 60; // Convert minutes to seconds
+      const elapsedTime = Math.floor((Date.now() - partialSubmission.examStartedAt) / 1000);
+      const calculatedTimeRemaining = Math.max(0, examDurationInSeconds - elapsedTime);
+
+      // Use the minimum of stored time and calculated time (to handle cases where student left for long)
+      timeRemaining = partialSubmission.timeRemaining ?
+        Math.min(partialSubmission.timeRemaining, calculatedTimeRemaining) :
+        calculatedTimeRemaining;
 
       console.log(`Found partial submission for student ${req.user._id} in exam ${examId}`);
       console.log('Saved answers count:', Object.keys(savedAnswers.mcq).length, 'MCQ answers');
       console.log('Time remaining:', timeRemaining, 'seconds');
+      console.log('Exam started at:', partialSubmission.examStartedAt);
     }
 
     console.log()
@@ -279,10 +314,42 @@ exports.savePartialSubmission = async (req, res) => {
     if (answers.mcq && Object.keys(answers.mcq).length > 0) {
       for (const questionId in answers.mcq) {
         const answerData = answers.mcq[questionId];
+        // ALWAYS use the index, never the text value
+        let selectedOption;
+
+        if (typeof answerData === 'object' && answerData !== null) {
+          // If answerData is an object, use the index property
+          selectedOption = answerData.index !== undefined ? answerData.index : answerData.value;
+
+          // If value is text but index exists, prefer index
+          if (typeof answerData.index !== 'undefined') {
+            selectedOption = answerData.index;
+          }
+        } else {
+          // If answerData is the value directly (shouldn't happen with our code)
+          selectedOption = answerData;
+        }
+
+        // Ensure it's stored as a number
+        if (typeof selectedOption === 'string' && !isNaN(selectedOption)) {
+          selectedOption = parseInt(selectedOption);
+        } else if (typeof selectedOption === 'string') {
+          // If it's a string that's not a number, log error and skip
+          console.error(`WARNING: Got non-numeric answer for question ${questionId}: ${selectedOption}`);
+          // Try to use index if available
+          if (answerData && typeof answerData.index !== 'undefined') {
+            selectedOption = parseInt(answerData.index);
+          } else {
+            continue; // Skip this answer
+          }
+        }
+
         mcqAnswers.push({
           questionId: questionId,
-          selectedOption: answerData.value || answerData.index?.toString() || answerData
+          selectedOption: selectedOption
         });
+
+        console.log(`Saving answer for question ${questionId}: selectedOption=${selectedOption}, type=${typeof selectedOption}`);
       }
     }
 
@@ -298,19 +365,29 @@ exports.savePartialSubmission = async (req, res) => {
       }
     }
 
+    // Check if this is a new partial submission or update
+    const existingPartial = await PartialSubmission.findOne({ exam: examId, student: userId });
+
     // Save or update the partial submission
+    const updateData = {
+      exam: examId,
+      student: userId,
+      mcqAnswers: mcqAnswers,
+      codingAnswers: codingAnswers,
+      timeRemaining: timeRemaining || 0,
+      isPartial: true,
+      lastSavedAt: new Date()
+    };
+
+    // Only set examStartedAt for new partial submissions
+    if (!existingPartial) {
+      updateData.examStartedAt = new Date();
+    }
+
     const partialSubmission = await PartialSubmission.findOneAndUpdate(
       { exam: examId, student: userId },
-      {
-        exam: examId,
-        student: userId,
-        mcqAnswers: mcqAnswers,
-        codingAnswers: codingAnswers,
-        timeRemaining: timeRemaining || 0,
-        isPartial: true,
-        lastSavedAt: new Date()
-      },
-      { upsert: true, new: true }
+      updateData,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     console.log(`Partial submission saved for student ${userId} in exam ${examId}`);
@@ -359,9 +436,32 @@ exports.postStartExam = async (req, res) => {
     if (mcqAnswers && mcqAnswers.length > 0) {
       for (const answer of mcqAnswers) {
         const question = await MCQQuestion.findById(answer.questionId)
-        // Both correctAnswer and selectedOption are strings, compare as strings
-        if (question && question.correctAnswer === answer.selectedOption) {
-          totalScore += question.marks || 1
+
+        if (question) {
+          // Fix: Handle both index-based and text-based answers
+          let isCorrect = false;
+
+          // Check if selectedOption is a number (index) or string
+          if (typeof answer.selectedOption === 'number') {
+            // New format: selectedOption is an index
+            const selectedText = question.options[answer.selectedOption];
+            isCorrect = selectedText === question.correctAnswer;
+          } else if (typeof answer.selectedOption === 'string' && !isNaN(answer.selectedOption)) {
+            // String number format
+            const index = parseInt(answer.selectedOption);
+            const selectedText = question.options[index];
+            isCorrect = selectedText === question.correctAnswer;
+          } else if (typeof answer.selectedOption === 'string') {
+            // Old format: selectedOption is the actual text
+            isCorrect = answer.selectedOption === question.correctAnswer;
+          }
+
+          if (isCorrect) {
+            totalScore += question.marks || 1;
+            console.log(`Question ${answer.questionId}: Correct! Adding ${question.marks || 1} marks`);
+          } else {
+            console.log(`Question ${answer.questionId}: Incorrect. Selected: ${answer.selectedOption}, Correct: ${question.correctAnswer}`);
+          }
         }
       }
     }

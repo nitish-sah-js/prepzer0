@@ -273,6 +273,114 @@
       transform: scale(1.05);
     }
 
+    /* Delete Button */
+    .delete-btn {
+      position: absolute;
+      top: 50px;
+      right: 15px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+
+    .delete-btn:hover {
+      background-color: #c82333;
+      transform: scale(1.05);
+    }
+
+    /* Bulk Actions */
+    .bulk-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .bulk-select-all {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+      font-size: 15px;
+    }
+
+    .bulk-select-all input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .bulk-actions-buttons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .bulk-delete-btn {
+      padding: 10px 20px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bulk-delete-btn:hover {
+      background-color: #c82333;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .bulk-delete-btn:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .bulk-delete-btn:disabled:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .bulk-delete-icon {
+      font-size: 16px;
+    }
+
+    /* Checkbox in student card */
+    .student-checkbox {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .student-card.selected {
+      border-color: #dc3545;
+      background-color: rgba(220, 53, 69, 0.05);
+    }
+
     /* Modal Styles */
     .modal {
       display: none;
@@ -517,12 +625,13 @@
 
         <select id="departmentSelect" name="department">
           <option value="">All Departments</option>
-          <option value="CS" <%= currentFilters.department === 'CS' ? 'selected' : '' %>>Computer Science</option>
-          <option value="IS" <%= currentFilters.department === 'IS' ? 'selected' : '' %>>Information Science</option>
-          <option value="Mech" <%= currentFilters.department === 'Mech' ? 'selected' : '' %>>Mechanical</option>
-          <option value="Civil" <%= currentFilters.department === 'Civil' ? 'selected' : '' %>>Civil</option>
-          <option value="EC" <%= currentFilters.department === 'EC' ? 'selected' : '' %>>Electronics & Comm.</option>
-          <option value="EEE" <%= currentFilters.department === 'EEE' ? 'selected' : '' %>>Electrical & Electronics</option>
+          <% if (departments && departments.length > 0) { %>
+            <% departments.forEach(dept => { %>
+              <option value="<%= dept.code.toUpperCase() %>" <%= currentFilters.department.toLowerCase() === dept.code.toLowerCase() ? 'selected' : '' %>>
+                <%= dept.name %>
+              </option>
+            <% }) %>
+          <% } %>
         </select>
 
         <input type="text" id="usnSearch" name="usn" placeholder="Search by USN" value="<%= currentFilters.usn %>" />
@@ -539,11 +648,31 @@
       </div>
     <% } %>
 
+    <!-- Bulk Actions Bar -->
+    <% if(students && students.length > 0) { %>
+    <div class="bulk-actions">
+      <div class="bulk-select-all">
+        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+        <label for="selectAll">Select All</label>
+        <span id="selectedCount" style="color: var(--text-secondary); margin-left: 10px;"></span>
+      </div>
+      <div class="bulk-actions-buttons">
+        <button id="bulkDeleteBtn" class="bulk-delete-btn" onclick="confirmBulkDelete()" disabled>
+          <span class="bulk-delete-icon">🗑️</span>
+          <span>Bulk Delete</span>
+          <span id="deleteCount" style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 13px;">(0)</span>
+        </button>
+      </div>
+    </div>
+    <% } %>
+
     <div class="students-container" id="studentList">
       <% if(students && students.length > 0) { %>
         <% students.forEach(student => { %>
-          <div class="student-card">
+          <div class="student-card" data-student-id="<%= student._id %>">
+            <input type="checkbox" class="student-checkbox" onchange="updateSelection()" onclick="event.stopPropagation()">
             <button class="edit-btn" onclick="event.stopPropagation(); openEditModal('<%= student._id %>', '<%= student.fname %>', '<%= student.lname %>', '<%= student.USN %>', '<%= student.email %>', '<%= student.Department %>', '<%= student.CurrentSemester || student.Semester %>', '<%= student.phone || '' %>', '<%= student.Rollno || '' %>')">Edit</button>
+            <button class="delete-btn" onclick="event.stopPropagation(); confirmDeleteStudent('<%= student._id %>', '<%= student.fname %> <%= student.lname %>')">Delete</button>
             <img class="student-avatar" src="<%= student.imageurl || 'https://randomuser.me/api/portraits/men/1.jpg' %>" alt="<%= student.name %>" onclick="location.href='/admin/students/<%= student._id %>/exams'" />
             <div class="student-info" onclick="location.href='/admin/students/<%= student._id %>/exams'">
               <div class="student-name"><%= student.fname || 'Student Name' %></div>
@@ -651,14 +780,21 @@
         <div class="form-group">
           <label for="department">Department</label>
           <select id="department" name="Department" required>
-            <option value="cs">Computer Science</option>
-            <option value="is">Information Science</option>
-            <option value="ec">Electronics & Communication</option>
-            <option value="et">Electronics & Telecommunication</option>
-            <option value="ai">Artificial Intelligence</option>
-            <option value="cv">Civil Engineering</option>
-            <option value="ee">Electrical Engineering</option>
-            <option value="ad">Automation & Robotics</option>
+            <% if (departments && departments.length > 0) { %>
+              <% departments.forEach(dept => { %>
+                <option value="<%= dept.code %>"><%= dept.name %></option>
+              <% }) %>
+            <% } else { %>
+              <!-- Fallback to hardcoded departments if none in database -->
+              <option value="cs">Computer Science</option>
+              <option value="is">Information Science</option>
+              <option value="ec">Electronics & Communication</option>
+              <option value="et">Electronics & Telecommunication</option>
+              <option value="ai">Artificial Intelligence</option>
+              <option value="cv">Civil Engineering</option>
+              <option value="ee">Electrical Engineering</option>
+              <option value="ad">Automation & Robotics</option>
+            <% } %>
           </select>
         </div>
 
@@ -702,7 +838,19 @@
       document.getElementById('lname').value = lname;
       document.getElementById('usn').value = usn;
       document.getElementById('email').value = email;
-      document.getElementById('department').value = dept;
+
+      // Set department with case-insensitive matching
+      const departmentSelect = document.getElementById('department');
+      const deptLower = dept.toLowerCase();
+
+      // Find the matching option (case-insensitive)
+      for (let i = 0; i < departmentSelect.options.length; i++) {
+        if (departmentSelect.options[i].value.toLowerCase() === deptLower) {
+          departmentSelect.selectedIndex = i;
+          break;
+        }
+      }
+
       document.getElementById('semester').value = sem;
       document.getElementById('phone').value = phone;
       document.getElementById('rollno').value = rollno;
@@ -760,6 +908,152 @@
         }
       } catch (error) {
         console.error('Error updating student:', error);
+        alert('Network error occurred');
+      }
+    }
+
+    // Update selection count
+    function updateSelection() {
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+      const checked = Array.from(checkboxes).filter(cb => cb.checked);
+      const count = checked.length;
+
+      // Update UI
+      document.getElementById('deleteCount').textContent = `(${count})`;
+      document.getElementById('selectedCount').textContent = count > 0 ? `${count} selected` : '';
+
+      // Enable/disable bulk delete button
+      const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+      if (count > 0) {
+        bulkDeleteBtn.disabled = false;
+        bulkDeleteBtn.style.cursor = 'pointer';
+      } else {
+        bulkDeleteBtn.disabled = true;
+        bulkDeleteBtn.style.cursor = 'not-allowed';
+      }
+
+      // Update select all checkbox
+      const selectAll = document.getElementById('selectAll');
+      selectAll.checked = count === checkboxes.length && count > 0;
+
+      // Update card styling
+      document.querySelectorAll('.student-card').forEach(card => {
+        const checkbox = card.querySelector('.student-checkbox');
+        if (checkbox.checked) {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      });
+    }
+
+    // Toggle select all
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('selectAll');
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+
+      checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+      });
+
+      updateSelection();
+    }
+
+    // Confirm bulk delete
+    function confirmBulkDelete() {
+      const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+      const count = checkboxes.length;
+
+      if (count === 0) {
+        alert('Please select at least one student to delete.');
+        return;
+      }
+
+      const studentNames = Array.from(checkboxes).slice(0, 5).map(cb => {
+        const card = cb.closest('.student-card');
+        const nameElem = card.querySelector('.student-name');
+        return nameElem ? nameElem.textContent : 'Unknown';
+      });
+
+      let message = `⚠️ WARNING: You are about to PERMANENTLY delete ${count} student(s).\n\n`;
+
+      if (count <= 5) {
+        message += `Students to be deleted:\n${studentNames.map((name, i) => `${i+1}. ${name}`).join('\n')}\n\n`;
+      } else {
+        message += `First 5 students:\n${studentNames.map((name, i) => `${i+1}. ${name}`).join('\n')}\n... and ${count - 5} more\n\n`;
+      }
+
+      message += `⚠️ This action CANNOT be undone!\n\n`;
+      message += `Note: Students with existing exam submissions will NOT be deleted.\n\n`;
+      message += `Type "DELETE" to confirm this action.`;
+
+      const userInput = prompt(message);
+
+      if (userInput === 'DELETE') {
+        const studentIds = Array.from(checkboxes).map(cb => {
+          return cb.closest('.student-card').dataset.studentId;
+        });
+
+        bulkDeleteStudents(studentIds);
+      } else if (userInput !== null) {
+        alert('Deletion cancelled. You must type "DELETE" exactly to confirm.');
+      }
+    }
+
+    // Bulk delete students
+    async function bulkDeleteStudents(studentIds) {
+      try {
+        const response = await fetch('/admin/students/bulk-delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ studentIds: studentIds })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert(`Successfully deleted ${result.deletedCount} student(s)`);
+          location.reload();
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting students:', error);
+        alert('Network error occurred');
+      }
+    }
+
+    // Confirm single delete
+    function confirmDeleteStudent(studentId, studentName) {
+      const confirmed = confirm(`Are you sure you want to delete ${studentName}? This action cannot be undone.`);
+
+      if (confirmed) {
+        deleteStudent(studentId);
+      }
+    }
+
+    // Delete single student
+    async function deleteStudent(studentId) {
+      try {
+        const response = await fetch(`/admin/students/${studentId}/delete`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('Student deleted successfully!');
+          location.reload();
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting student:', error);
         alert('Network error occurred');
       }
     }

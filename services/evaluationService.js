@@ -534,21 +534,36 @@ async function fallbackEvaluate(code, languageId, question) {
               // IMPROVED: More robust input parsing
               let nums = null;
               try {
-                // Try to parse as JSON
-                nums = JSON.parse(input.replace(/'/g, '"').replace(/\[/g, '[').replace(/\]/g, ']'));
+                // Try to parse as JSON (safe parsing)
+                nums = JSON.parse(input.replace(/'/g, '"'));
               } catch (e) {
-                // Try various formats
-                try {
-                  nums = eval(`(${input})`);
-                } catch (e2) {
-                  // For comma-separated input, convert to array
+                // Try various safe parsing formats
+                // Check if it looks like an array format: [1, 2, 3] or [1,2,3]
+                if (input.trim().startsWith('[') && input.trim().endsWith(']')) {
+                  try {
+                    // Remove brackets and parse as comma-separated
+                    const arrayContent = input.trim().slice(1, -1);
+                    nums = arrayContent.split(',').map(num => {
+                      const parsed = parseInt(num.trim());
+                      if (isNaN(parsed)) {
+                        throw new Error(`Invalid number: ${num.trim()}`);
+                      }
+                      return parsed;
+                    });
+                  } catch (e2) {
+                    nums = null;
+                  }
+                }
+
+                // If still no success, try comma or space separated
+                if (!nums) {
                   if (input.includes(',')) {
                     nums = input.split(',').map(num => parseInt(num.trim()));
                   } else {
                     // For space-separated input
                     nums = input.split(/\s+/).map(num => parseInt(num.trim()));
                   }
-                  
+
                   // If we still failed to parse, throw an error
                   if (!nums || nums.some(isNaN)) {
                     throw new Error(`Unable to parse input: ${input}`);

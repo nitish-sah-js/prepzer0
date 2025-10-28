@@ -10,6 +10,7 @@ const ReportModel = require('./../models/reportModel');
 const mongoose = require('mongoose');
 const ExamCandidate = require('../models/ExamCandidate');
 const PartialSubmission = require('../models/PartialSubmission');
+const Department = require('../models/Department');
 
 const EvaluationResult = require('../models/EvaluationResultSchema')
 
@@ -198,6 +199,9 @@ exports.signuppostcontrol = async(req,res)=>{
                 filter.USN = new RegExp(usn, 'i');
             }
 
+            // Fetch active departments from database
+            const departments = await Department.find({ active: true }).sort({ code: 1 });
+
             // Query the database with filters (except semester)
             let students = await User.find(filter)
                 .select('-password -passwordresettoken -passwordresetdate') // Exclude sensitive fields
@@ -223,6 +227,7 @@ exports.signuppostcontrol = async(req,res)=>{
             // Render the EJS template with the students data
             res.render('allstudentsprofile', {
                 students: paginatedStudents,
+                departments: departments, // Pass departments to view
                 title: 'All Students',
                 heading: 'Student Profiles',
                 // Pass the current filter values to pre-populate the form
@@ -2471,6 +2476,147 @@ exports.editStudent = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Server error occurred while updating student',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Delete a single student
+ * DELETE /admin/students/:studentId/delete
+ */
+exports.deleteStudent = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authenticated'
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized. Only admins can delete students.'
+            });
+        }
+
+        // Find the student
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
+        // Check if student has any submissions
+        const hasSubmissions = await Submission.countDocuments({ student: studentId });
+
+        if (hasSubmissions > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete student with existing exam submissions. This would create orphaned data.',
+                submissionCount: hasSubmissions
+            });
+        }
+
+        // Delete the student
+        await User.findByIdAndDelete(studentId);
+
+        // Clean up related data
+        await ActivityTracker.deleteMany({ userId: studentId });
+        await PartialSubmission.deleteMany({ student: studentId });
+
+        console.log(`Admin ${user.email} deleted student ${student.USN}`);
+
+        res.json({
+            success: true,
+            message: 'Student deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error occurred while deleting student',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Bulk delete students
+ * POST /admin/students/bulk-delete
+ */
+exports.bulkDeleteStudents = async (req, res) => {
+    try {
+        const { studentIds } = req.body;
+
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authenticated'
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (user.usertype !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized. Only admins can delete students.'
+            });
+        }
+
+        if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No student IDs provided'
+            });
+        }
+
+        // Check for students with submissions
+        const studentsWithSubmissions = await Submission.aggregate([
+            { $match: { student: { $in: studentIds.map(id => mongoose.Types.ObjectId(id)) } } },
+            { $group: { _id: '$student', count: { $sum: 1 } } }
+        ]);
+
+        if (studentsWithSubmissions.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot delete ${studentsWithSubmissions.length} student(s) with existing exam submissions. This would create orphaned data.`,
+                studentsWithSubmissions: studentsWithSubmissions.length
+            });
+        }
+
+        // Delete students
+        const deleteResult = await User.deleteMany({
+            _id: { $in: studentIds },
+            usertype: 'student'
+        });
+
+        // Clean up related data
+        await ActivityTracker.deleteMany({ userId: { $in: studentIds } });
+        await PartialSubmission.deleteMany({ student: { $in: studentIds } });
+
+        console.log(`Admin ${user.email} bulk deleted ${deleteResult.deletedCount} students`);
+
+        res.json({
+            success: true,
+            message: `Successfully deleted ${deleteResult.deletedCount} student(s)`,
+            deletedCount: deleteResult.deletedCount
+        });
+
+    } catch (error) {
+        console.error('Error bulk deleting students:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error occurred while deleting students',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

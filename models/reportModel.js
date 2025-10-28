@@ -269,15 +269,40 @@ class ReportModel {
       const submittedAnswer = submission.mcqAnswers.find(
         answer => answer.questionId.toString() === question._id.toString()
       );
-      
-      const isCorrect = submittedAnswer && submittedAnswer.selectedOption === question.correctAnswer;
-      
+
+      // Fix: Compare the selected option properly
+      let isCorrect = false;
+      let submittedAnswerText = 'Not answered';
+
+      if (submittedAnswer) {
+        // submittedAnswer.selectedOption is now stored as an index (0, 1, 2, 3)
+        const selectedIndex = submittedAnswer.selectedOption;
+
+        // Check if selectedOption is a number (new format) or string (old format)
+        if (typeof selectedIndex === 'number' && question.options && question.options[selectedIndex]) {
+          // New format: selectedOption is an index
+          submittedAnswerText = question.options[selectedIndex];
+          isCorrect = submittedAnswerText === question.correctAnswer;
+        } else if (typeof selectedIndex === 'string' && !isNaN(selectedIndex) && question.options) {
+          // String number format
+          const index = parseInt(selectedIndex);
+          if (question.options[index]) {
+            submittedAnswerText = question.options[index];
+            isCorrect = submittedAnswerText === question.correctAnswer;
+          }
+        } else if (typeof submittedAnswer.selectedOption === 'string') {
+          // Old format: selectedOption might be the actual text
+          submittedAnswerText = submittedAnswer.selectedOption;
+          isCorrect = submittedAnswerText === question.correctAnswer;
+        }
+      }
+
       return {
         _id: question._id,
         question: question.question,
         options: question.options,
         correctAnswer: question.correctAnswer,
-        submittedAnswer: submittedAnswer ? submittedAnswer.selectedOption : 'Not answered',
+        submittedAnswer: submittedAnswerText,
         isCorrect: isCorrect,
         marks: isCorrect ? question.marks : 0
       };

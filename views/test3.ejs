@@ -33,8 +33,18 @@
 
         body {
             background-color: #f3f4f6;
-            color: var(--dark);
+            color: #1f2937;
             line-height: 1.6;
+        }
+
+        /* Ensure all text elements have proper contrast */
+        p, li, span, div {
+            color: #374151;
+        }
+
+        strong, b {
+            color: #1f2937;
+            font-weight: 600;
         }
 
         /* Header Styles */
@@ -65,7 +75,7 @@
         .header-title {
             font-size: 1.2rem;
             font-weight: 600;
-            color: #fff;
+            color: #1f2937;
         }
 
         .header-right {
@@ -209,6 +219,14 @@
             align-items: center;
         }
 
+        .question-number {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
         .question-badges {
             display: flex;
             gap: 0.5rem;
@@ -255,11 +273,12 @@
             font-size: 1.25rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            color: #fff;
+            color: #1f2937;
         }
 
         .question-description {
             margin-bottom: 1.5rem;
+            color: #374151;
         }
 
         .section-title {
@@ -267,7 +286,7 @@
             font-weight: 600;
             margin-top: 1.5rem;
             margin-bottom: 0.5rem;
-            color: #fff;
+            color: #1f2937;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -287,6 +306,15 @@
             font-size: 0.9rem;
             line-height: 1.5;
             margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        code {
+            color: #1f2937;
+            background-color: #f3f4f6;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Consolas', 'Monaco', monospace;
         }
 
         /* MCQ Options Styles */
@@ -328,6 +356,8 @@
         .mcq-option label {
             cursor: pointer;
             flex: 1;
+            color: #1f2937;
+            font-weight: 500;
         }
 
 
@@ -719,6 +749,9 @@ body.dark-theme .execution-output {
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            border: none;
+            outline: none;
+            font-size: 1.25rem;
         }
 
         .dark-mode-toggle:hover {
@@ -775,9 +808,9 @@ body.dark-theme .execution-output {
             <div class="timer-display" id="examTimer">
                 <i class="fas fa-clock"></i> --:--:--
             </div>
-            <div class="dark-mode-toggle" id="darkModeToggle">
+            <button type="button" class="dark-mode-toggle" id="darkModeToggle">
                 <i class="fas fa-moon"></i>
-            </div>
+            </button>
         </div>
     </header>
 
@@ -2325,6 +2358,52 @@ const examIntegrity = (function() {
     const globalUserId = '<%= studentId %>';
     const globalExamId = '<%= examId %>';
 
+    // Function to set up dark mode toggle (defined before DOMContentLoaded)
+    function setupDarkModeToggle() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+
+        // Check if element exists
+        if (!darkModeToggle) {
+            console.error('Dark mode toggle element not found!');
+            return;
+        }
+
+        console.log('Dark mode toggle initialized:', darkModeToggle);
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+        // Check if user has a preference stored
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        } else if (currentTheme === 'light') {
+            document.body.classList.remove('dark-theme');
+            darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        } else if (prefersDarkScheme.matches) {
+            document.body.classList.add('dark-theme');
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+
+        // Add click event listener
+        darkModeToggle.onclick = function() {
+            console.log('Dark mode toggle clicked!');
+
+            if (document.body.classList.contains('dark-theme')) {
+                console.log('Switching to light mode');
+                document.body.classList.remove('dark-theme');
+                darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+                localStorage.setItem('theme', 'light');
+            } else {
+                console.log('Switching to dark mode');
+                document.body.classList.add('dark-theme');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                localStorage.setItem('theme', 'dark');
+            }
+        };
+
+        console.log('Dark mode toggle event listener attached');
+    }
+
     // Store the exam data in localStorage when the page loads
     window.addEventListener('DOMContentLoaded', () => {
         // Assuming 'exam' is passed from the server to the EJS template
@@ -2359,9 +2438,22 @@ const examIntegrity = (function() {
         }
 
         // If returning with saved answers, skip the start overlay and go directly to exam
-        if (savedAnswers && typeof savedAnswers === 'object' && Object.keys(savedAnswers).length > 0) {
+        // Check if there are actual answers (not just the empty structure)
+        const hasSavedAnswers = savedAnswers && typeof savedAnswers === 'object' &&
+            ((savedAnswers.mcq && Object.keys(savedAnswers.mcq).length > 0) ||
+             (savedAnswers.coding && Object.keys(savedAnswers.coding).length > 0));
+
+        if (hasSavedAnswers) {
             console.log('Returning student with saved answers, skipping start overlay');
-            console.log('Saved answers:', savedAnswers);
+            console.log('Saved answers structure:', savedAnswers);
+            console.log('MCQ answers count:', savedAnswers.mcq ? Object.keys(savedAnswers.mcq).length : 0);
+
+            // Log each saved answer for debugging
+            if (savedAnswers.mcq) {
+                Object.keys(savedAnswers.mcq).forEach(questionId => {
+                    console.log(`Question ${questionId}:`, savedAnswers.mcq[questionId]);
+                });
+            }
             console.log('Time remaining:', savedTimeRemaining);
 
             // IMPORTANT: Set up localStorage FIRST for returning students
@@ -2387,7 +2479,12 @@ const examIntegrity = (function() {
             }
 
             // Restore saved answers to localStorage
+            console.log('About to restore answers to localStorage:', savedAnswers);
             localStorage.setItem('examAnswers', JSON.stringify(savedAnswers));
+
+            // Verify it was saved correctly
+            const verifyAnswers = JSON.parse(localStorage.getItem('examAnswers'));
+            console.log('Verified answers in localStorage after setting:', verifyAnswers);
 
             // Set up timer with saved time
             if (examData.duration) {
@@ -2407,6 +2504,9 @@ const examIntegrity = (function() {
                 mainContainer.style.display = 'grid';
                 header.style.display = 'flex';
             }
+
+            // Set up dark mode toggle for returning students
+            setupDarkModeToggle();
 
             // Initialize exam directly
             setTimeout(() => {
@@ -2878,7 +2978,7 @@ styleElement.textContent += startExamStyles;
 document.head.appendChild(styleElement);
 
         // Only set up localStorage for NEW exam attempts (not returning students)
-        if (!savedAnswers || Object.keys(savedAnswers).length === 0) {
+        if (!hasSavedAnswers) {
             // Check if we're returning to an existing exam
             const existingExam = localStorage.getItem('currentExam');
             const existingQuestions = localStorage.getItem('mcqQuestions');
@@ -2908,22 +3008,17 @@ document.head.appendChild(styleElement);
         }
 
         // Only set up timer and answers for NEW exam attempts (returning students already have this set)
-        if (!savedAnswers || Object.keys(savedAnswers).length === 0) {
+        if (!hasSavedAnswers) {
+            console.log('Setting up NEW exam attempt (no saved answers)');
+
             // Initialize timer if exam has duration
             if (examData.duration) {
                 let endTime;
-
-                if (savedTimeRemaining && savedTimeRemaining > 0) {
-                    // Resume from saved time
-                    endTime = new Date().getTime() + (savedTimeRemaining * 1000);
-                    console.log('Resuming exam with time remaining:', savedTimeRemaining, 'seconds');
-                } else {
-                    // Start fresh timer
-                    endTime = new Date().getTime() + (examData.duration * 60 * 1000);
-                }
-
+                // For NEW attempts, always start fresh timer
+                endTime = new Date().getTime() + (examData.duration * 60 * 1000);
                 localStorage.setItem('examEndTime', endTime.toString());
                 localStorage.setItem('examStartTime', new Date().getTime().toString());
+                console.log('New exam timer set for', examData.duration, 'minutes');
             }
 
             // Initialize empty answers object for new attempt
@@ -2931,7 +3026,13 @@ document.head.appendChild(styleElement);
                 mcq: {},
                 coding: {}
             };
+            console.log('Initializing empty answers for new attempt');
             localStorage.setItem('examAnswers', JSON.stringify(emptyAnswers));
+        } else {
+            console.log('NOT setting up new exam - student has saved answers');
+            // Double-check answers are still in localStorage
+            const checkAnswers = JSON.parse(localStorage.getItem('examAnswers'));
+            console.log('Confirmed answers still in localStorage:', checkAnswers);
         }
         
         // Set up dark mode toggle
@@ -2941,40 +3042,15 @@ document.head.appendChild(styleElement);
         initializeExam();
     });
 
-    // Function to set up dark mode toggle
-    function setupDarkModeToggle() {
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-        
-        // Check if user has a preference stored
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme === 'dark') {
-            document.body.classList.add('dark-theme');
-            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-        } else if (currentTheme === 'light') {
-            document.body.classList.remove('dark-theme');
-            document.body.
-            darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-        } else if (prefersDarkScheme.matches) {
-            document.body.classList.add('dark-theme');
-            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-        }
-        
-        darkModeToggle.addEventListener('click', () => {
-            if (document.body.classList.contains('dark-theme')) {
-                document.body.classList.remove('dark-theme');
-                darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-                localStorage.setItem('theme', 'light');
-            } else {
-                document.body.classList.add('dark-theme');
-                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-                localStorage.setItem('theme', 'dark');
-            }
-        });
-    }
-
     // Function to handle exam initialization
     function initializeExam() {
+        console.log('=== INITIALIZING EXAM ===');
+
+        // Check current state of localStorage
+        const currentAnswers = JSON.parse(localStorage.getItem('examAnswers'));
+        console.log('Current answers in localStorage at exam init:', currentAnswers);
+        console.log('Answer count:', currentAnswers && currentAnswers.mcq ? Object.keys(currentAnswers.mcq).length : 0);
+
         // Get the exam data from localStorage
         const examData = JSON.parse(localStorage.getItem('currentExam'));
 
@@ -3231,6 +3307,15 @@ function loadQuestion(index) {
 
     // Function to display an MCQ question
     function displayMCQQuestion(question, index) {
+    console.log(`Displaying MCQ question ${question._id} at index ${index}`);
+
+    // Check what answers are currently in localStorage
+    const currentAnswers = JSON.parse(localStorage.getItem('examAnswers'));
+    console.log('Answers in localStorage when displaying question:', currentAnswers);
+    if (currentAnswers && currentAnswers.mcq) {
+        console.log('Number of saved MCQ answers:', Object.keys(currentAnswers.mcq).length);
+    }
+
     const questionContainer = document.getElementById('questionContainer');
     questionContainer.innerHTML = ''; // Clear previous content
     
@@ -3349,9 +3434,10 @@ function loadQuestion(index) {
         if (!answers.mcq) {
             answers.mcq = {};
         }
+        // IMPORTANT: Always store index as a number, value is just for reference
         answers.mcq[questionId] = {
-            index: optionIndex,
-            value: optionText
+            index: parseInt(optionIndex), // Ensure index is always a number
+            value: optionIndex  // Store the index as value too for consistency
         };
         localStorage.setItem('examAnswers', JSON.stringify(answers));
         
@@ -3362,10 +3448,21 @@ function loadQuestion(index) {
     // Function to get selected MCQ answer
     function getSelectedMCQAnswer(questionId, optionIndex) {
         const answers = JSON.parse(localStorage.getItem('examAnswers'));
-        return answers && 
-               answers.mcq && 
-               answers.mcq[questionId] && 
-               answers.mcq[questionId].index === optionIndex;
+
+        // Debug logging
+        if (answers && answers.mcq && answers.mcq[questionId]) {
+            console.log(`Checking saved answer for question ${questionId}:`,
+                       'saved index =', answers.mcq[questionId].index,
+                       'checking against =', optionIndex,
+                       'types:', typeof answers.mcq[questionId].index, typeof optionIndex);
+        }
+
+        // Check with type coercion since one might be string and other number
+        return answers &&
+               answers.mcq &&
+               answers.mcq[questionId] &&
+               (answers.mcq[questionId].index == optionIndex ||
+                answers.mcq[questionId].value == optionIndex);
     }
 
 
@@ -3699,9 +3796,11 @@ function submitExam() {
     if (updatedAnswers.mcq && Object.keys(updatedAnswers.mcq).length > 0) {
         for (const questionId in updatedAnswers.mcq) {
             const answerData = updatedAnswers.mcq[questionId];
+            // Always send the index as a number
+            const selectedIndex = answerData.index !== undefined ? answerData.index : answerData.value;
             submissionData.mcqAnswers.push({
                 questionId: questionId,
-                selectedOption: answerData.value || answerData.index.toString()
+                selectedOption: parseInt(selectedIndex)  // Ensure it's a number
             });
         }
     }
@@ -4006,14 +4105,52 @@ function clearExamData() {
             background-color: #1e1e2d;
             color: #e5e7eb;
         }
-        
+
+        /* Override light mode text colors for dark theme */
+        body.dark-theme p,
+        body.dark-theme li,
+        body.dark-theme span,
+        body.dark-theme div {
+            color: #d1d5db;
+        }
+
+        body.dark-theme strong,
+        body.dark-theme b {
+            color: #e5e7eb;
+        }
+
+        body.dark-theme .question-title {
+            color: #e5e7eb;
+        }
+
+        body.dark-theme .question-description {
+            color: #d1d5db;
+        }
+
+        body.dark-theme .section-title {
+            color: #e5e7eb;
+        }
+
+        body.dark-theme .header-title {
+            color: #e5e7eb;
+        }
+
         body.dark-theme .header,
         body.dark-theme .question-panel,
         body.dark-theme .sidebar-card {
             background-color: #252636;
             color: #e5e7eb;
         }
-        
+
+        body.dark-theme .question-header {
+            background-color: #1e40af;
+        }
+
+        body.dark-theme .question-number {
+            color: #ffffff;
+            font-weight: 700;
+        }
+
         body.dark-theme .nav-button {
             background-color: #2d2d3f;
             color: #e5e7eb;
@@ -4042,6 +4179,14 @@ function clearExamData() {
         body.dark-theme .mcq-option.selected {
             background-color: #3b82f6;
             border-color: #2563eb;
+            color: white;
+        }
+
+        body.dark-theme .mcq-option label {
+            color: #e5e7eb;
+        }
+
+        body.dark-theme .mcq-option.selected label {
             color: white;
         }
         
