@@ -2376,12 +2376,13 @@ const examIntegrity = (function() {
         if (currentTheme === 'dark') {
             document.body.classList.add('dark-theme');
             darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-        } else if (currentTheme === 'light') {
+        } else {
+            // Default to light mode for exams
             document.body.classList.remove('dark-theme');
             darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-        } else if (prefersDarkScheme.matches) {
-            document.body.classList.add('dark-theme');
-            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            if (!currentTheme) {
+                localStorage.setItem('theme', 'light');
+            }
         }
 
         // Add click event listener

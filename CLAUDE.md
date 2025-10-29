@@ -17,10 +17,14 @@ npm run clean:database                       # Full database cleanup/reset
 node scripts/create-admin.js                 # Create admin user
 node scripts/populate-students.js            # Populate test data
 node scripts/recalculate-scores.js          # Fix submission scores
+node scripts/seed-classifications.js         # Seed MCQ classifications
+node scripts/seed-sample-mcqs.js            # Add sample MCQ questions
+node scripts/fix-department-parsing.js      # Fix department code truncation
 
 # Testing
 cd test && python create_test_accounts.py    # Create test accounts
 cd test && python test_chrome.py             # Run Selenium tests
+node scripts/test-mcq-save-fix.js           # Test MCQ save functionality
 ```
 
 ## Application Overview
@@ -204,11 +208,11 @@ Seed with: `npm run seed:departments`
 
 ```env
 # Server
-PORT=80
+PORT=80  # Can also use 3000 for local development
 NODE_ENV=production
 
-# MongoDB
-MONGODB_URI=mongodb+srv://...
+# MongoDB (REQUIRED - app won't start without this)
+MONGODB_URI=mongodb+srv://...  # Cloud MongoDB Atlas connection
 DB_NAME=codingplatform
 
 # Session
@@ -227,6 +231,78 @@ EMAIL_PORT=465
 EMAIL_USER=services@prepzer0.co.in
 EMAIL_PASSWORD=...
 ```
+
+**Important**: The app uses `process.env.MONGODB_URI` directly. If undefined, mongoose.connect() will fail.
+
+## Known Limitations
+
+### Security Constraints
+- **Helmet.js disabled** (app.js:56): Security headers not enforced due to conflicts with inline scripts
+- **API keys exposed**: RapidAPI keys hardcoded in evaluationService.js:960 and test.ejs:5766
+- **Rate limiting not implemented**: `rateLimit` imported but unused (app.js:33), vulnerable to brute force attacks
+- **Client-side integrity monitoring**: All violations tracked client-side, can be bypassed by tech-savvy students
+
+### Session Management
+- **Session timeout**: Fixed at 24 hours, no dynamic adjustment for long exams
+- **Single-device enforcement**: Only applies to students on exam routes, not teachers/admins
+- **Touch interval**: 24 hours may cause session expiry during active exams
+- **No session refresh**: Manual re-authentication required if session expires mid-exam
+
+### Browser Compatibility
+- **Webcam capture**: Requires MediaDevices API, fails on IE, older Safari, some mobile browsers
+- **No camera fallback**: Exam cannot proceed without webcam access
+- **Fullscreen API**: Different implementations across browsers (Safari, Firefox, IE/Edge variants)
+- **Browser-specific code**: Requires maintenance for each browser vendor
+
+### File Upload Constraints
+- **Size limits**: CSV (5MB), Images (2MB), Excel (10MB) - fixed, not configurable per exam
+- **Body parser**: 100MB limit may cause memory issues with concurrent large uploads
+- **S3 dependency**: Integrity images require AWS S3, no local storage fallback
+
+### Database Limitations
+- **TTL auto-cleanup**: Activity records deleted after 7 days, historical data unavailable
+- **Unique indexes**: One partial submission per student per exam, concurrent saves may fail
+- **No query optimization**: No caching layer (Redis), potential slow queries on large datasets
+- **Deprecated options**: Using `useNewUrlParser` and `useCreateIndex` for Mongoose 6+ compatibility
+
+### Code Evaluation (Judge0)
+- **External dependency**: Requires RapidAPI or self-hosted Judge0 instance
+- **No offline mode**: Cannot evaluate code without API access
+- **Language support**: Limited to Judge0-supported languages, cannot add custom languages
+- **Debug mode**: Always enabled (evaluationService.js:14), excessive logging in production
+
+### USN & Semester Calculation
+- **Rigid format**: USN must follow `LocationYearDepartmentRollNumber` pattern exactly
+- **Assumptions**: Jan-Jun = even semester, Jul-Dec = odd semester
+- **Cannot handle**: Gap years, lateral entries, different academic calendars
+- **Legacy data**: Department codes truncated to 2 chars pre-October 2025 (migration script available)
+
+### Integrity Monitoring
+- **Fixed violation limits**: 3 violations = auto-submit, not configurable per exam
+- **Hardcoded cooldowns**: Tab changes (1s), fullscreen exits (500ms), page refreshes (max 2)
+- **Client-side only**: All detection done in browser, no server-side verification
+- **Limited refresh**: Only 2 page refreshes allowed, may be insufficient for connectivity issues
+
+### Partial Submission
+- **Auto-save interval**: 30 seconds, changes within this window may be lost on crash
+- **Single session**: Cannot track multiple attempts/sessions per student per exam
+- **No recovery**: If auto-save fails, no notification to student
+
+### Exam Configuration
+- **Targeting constraint**: Must have (departments + semester) OR Excel candidates, never both
+- **No templates**: Cannot save exam configurations for reuse
+- **Fixed reminders**: 15 minutes before exam start, not configurable
+
+### Performance Constraints
+- **No caching**: All queries hit database directly
+- **Console logging**: Extensive debug logs throughout production code
+- **No load balancing**: Single server instance assumed
+- **Session storage**: MongoDB-based sessions may bottleneck at scale
+
+### Data Format Evolution
+- **Multiple answer formats**: Legacy text ("GET"), current index (0,1,2,3), string numbers ("0")
+- **Backward compatibility required**: Cannot assume single format across all submissions
+- **Type coercion**: Frequent string-to-number conversions needed in evaluation logic
 
 ## Critical Gotchas & Patterns
 
@@ -254,6 +330,28 @@ exports.postcontrol = async (req, res) => { ... }
 ```
 
 ### Recent Critical Fixes (October 2025)
+
+**Department Code Parsing (USN Regex)**:
+- Fixed: Department codes were truncated to 2 characters (CSEDS → CS)
+- Solution: Updated regex to support 2-10 character department codes
+- Files: authenticatecontroller.js (line 181), test.js (line 384)
+- Migration: Run `node scripts/fix-department-parsing.js` to fix existing users
+
+**Department Filtering (Student Directory)**:
+- Fixed: Partial matching causing CSEDS students to appear in CS filter
+- Solution: Changed to exact match using `^${department}$` regex
+- File: admincontroller.js (line 190)
+
+**MCQ Questions Not Saving**:
+- Fixed: Form sends correct answer as index (0,1,2,3) but controller expected text
+- Solution: Convert index to actual option text before saving
+- File: allmcqcontroller.js (lines 213-217)
+- Test: Run `node scripts/test-mcq-save-fix.js` to verify
+
+**MCQ Classification Dropdown Empty**:
+- Fixed: Dropdown was only showing classifications from existing questions
+- Solution: Changed to fetch all classifications from Classification model
+- File: allmcqcontroller.js (lines 43-45)
 
 **Dark Mode Toggle (test3.ejs)**:
 - Function must be defined BEFORE DOMContentLoaded (line 2354)
@@ -297,6 +395,27 @@ exports.postcontrol = async (req, res) => { ... }
 - JavaScript functions must be defined BEFORE they're called in DOMContentLoaded
 - Test with BOTH new students AND returning students (with saved answers)
 - Check both light mode and dark mode for proper contrast
+
+## MCQ Question System
+
+**Two Different MCQ Models**:
+1. `AllMCQQuestion` (MCQschema.js) - Global question bank, collection: `allmcqquestions`
+2. `MCQ` (MCQQuestion.js) - Exam-specific questions with `examId`
+
+**MCQ Form → Controller Data Flow**:
+- Form sends correct answer as **index** (0, 1, 2, 3)
+- Controller must convert index to **actual option text**
+- Schema validates correct answer must be in options array
+
+**Classification System**:
+- Classifications stored in `Classification` model
+- MCQ filter dropdown should fetch from Classification model (not just existing questions)
+- Seeding: `node scripts/seed-classifications.js` adds 18 default classifications
+
+**Common Issues & Solutions**:
+1. **Questions not saving**: Check if correct answer is being converted from index to text
+2. **Empty classification dropdown**: Run classification seeding script
+3. **Questions not displaying**: Check browser cache, hard refresh (Ctrl+F5)
 
 ## Partial Submission System
 

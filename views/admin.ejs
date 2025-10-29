@@ -316,23 +316,29 @@ html >
         
         .stat-card {
             background-color: var(--card-bg);
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             padding: 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s ease;
             position: relative;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 2px solid transparent;
         }
-        
+
         .stat-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.2);
+            border-color: rgba(79, 70, 229, 0.3);
         }
-        
+
         .stat-card.active {
-            box-shadow: 0 0 0 2px var(--primary), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 8px 16px -3px rgba(79, 70, 229, 0.3);
         }
-        
+
         .stat-card.active::after {
             content: "✓";
             position: absolute;
@@ -340,39 +346,49 @@ html >
             right: 10px;
             background: var(--primary);
             color: white;
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
+            font-weight: bold;
         }
-        
+
+        .stat-icon {
+            flex-shrink: 0;
+            width: 50px;
+            height: 50px;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(139, 92, 246, 0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .stat-card.active .stat-icon {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(139, 92, 246, 0.2));
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
         .stat-title {
             color: var(--secondary-text);
             font-size: 0.875rem;
             margin-bottom: 0.5rem;
+            font-weight: 500;
         }
-        
+
         .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        
-        .stat-trend {
-            display: flex;
-            align-items: center;
-            font-size: 0.875rem;
-        }
-        
-        .trend-up {
-            color: var(--success);
-        }
-        
-        .trend-down {
-            color: var(--danger);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--light-text);
+            line-height: 1;
         }
 
         .filter-info {
@@ -524,38 +540,48 @@ html >
         <!-- Stats Cards -->
         <div class="stats-container">
             <div class="stat-card active" data-filter="all" onclick="filterByStatus('all')" id="all-card">
-                <div class="stat-title">Total Exams</div>
-                <div class="stat-value" id="total-count">0</div>
-                <div class="stat-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> 12% from last month
+                <div class="stat-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Total Exams</div>
+                    <div class="stat-value" id="total-count">0</div>
                 </div>
             </div>
             <div class="stat-card" data-filter="upcoming" onclick="filterByStatus('upcoming')" id="upcoming-card">
-                <div class="stat-title">Upcoming Exams</div>
-                <div class="stat-value" id="upcoming-count">0</div>
-                <div class="stat-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> 20% from last month
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Upcoming Exams</div>
+                    <div class="stat-value" id="upcoming-count">0</div>
                 </div>
             </div>
             <div class="stat-card" data-filter="active" onclick="filterByStatus('active')" id="active-card">
-                <div class="stat-title">Ongoing Exams</div>
-                <div class="stat-value" id="active-count">0</div>
-                <div class="stat-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> 4% from last month
+                <div class="stat-icon">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Ongoing Exams</div>
+                    <div class="stat-value" id="active-count">0</div>
                 </div>
             </div>
             <div class="stat-card" data-filter="completed" onclick="filterByStatus('completed')" id="completed-card">
-                <div class="stat-title">Completed Exams</div>
-                <div class="stat-value" id="completed-count">0</div>
-                <div class="stat-trend trend-down">
-                    <i class="fas fa-arrow-down"></i> 8% from last month
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Completed Exams</div>
+                    <div class="stat-value" id="completed-count">0</div>
                 </div>
             </div>
             <div class="stat-card" data-filter="draft" onclick="filterByStatus('draft')" id="draft-card">
-                <div class="stat-title">Draft Exams</div>
-                <div class="stat-value" id="draft-count">0</div>
-                <div class="stat-trend trend-up">
-                    <i class="fas fa-arrow-up"></i> 16% from last month
+                <div class="stat-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Draft Exams</div>
+                    <div class="stat-value" id="draft-count">0</div>
                 </div>
             </div>
         </div>

@@ -6,15 +6,15 @@
     <title>MCQ Questions Database</title>
     <style>
         :root {
-            --primary-color: #141d2f;
+            --primary-color: #4f46e5;
             --secondary-color: #2980b9;
             --easy-color: #2ecc71;
             --medium-color: #f39c12;
             --hard-color: #e74c3c;
-            --background-color: #f5f5f5;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #e1e1e1;
+            --background-color: #111827;
+            --card-bg: #1f2937;
+            --text-color: #f9fafb;
+            --border-color: #374151;
         }
 
         body {
@@ -32,10 +32,10 @@
         }
 
         header {
-            background-color: var(--primary-color);
+            background-color: #1e293b;
             color: white;
             padding: 20px 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
 
         header .container {
@@ -129,7 +129,8 @@
             padding: 8px 15px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
-            background-color: white;
+            background-color: #374151;
+            color: var(--text-color);
             min-width: 200px;
             font-size: 14px;
             cursor: pointer;
@@ -138,7 +139,13 @@
         .filter-select:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            background-color: #3f4a5c;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+
+        .filter-select option {
+            background-color: #374151;
+            color: var(--text-color);
         }
 
         .questions-container {
@@ -228,7 +235,8 @@
         }
 
         .classification-tag {
-            background-color: #e1e1e1;
+            background-color: #374151;
+            color: #d1d5db;
             padding: 4px 12px;
             border-radius: 4px;
             font-weight: 500;
@@ -237,9 +245,10 @@
         .no-questions {
             text-align: center;
             padding: 40px;
-            background-color: white;
+            background-color: var(--card-bg);
             border-radius: 8px;
             width: 100%;
+            color: var(--text-color);
         }
 
         /* New styles for options */
@@ -257,19 +266,20 @@
         .option-item {
             margin-bottom: 10px;
             padding: 8px 12px;
-            background-color: #f5f7fa;
+            background-color: #2d3748;
+            color: var(--text-color);
             border-radius: 4px;
             transition: background-color 0.2s;
         }
 
         .option-item:hover {
-            background-color: #e8eef5;
+            background-color: #374151;
         }
 
         .created-by {
             margin-top: 15px;
             font-style: italic;
-            color: #666;
+            color: #9ca3af;
             font-size: 13px;
             text-align: right;
         }
@@ -291,7 +301,7 @@
 
         .pagination-btn {
             padding: 8px 16px;
-            background-color: white;
+            background-color: #374151;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             color: var(--text-color);
