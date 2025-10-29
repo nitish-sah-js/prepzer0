@@ -380,9 +380,10 @@ async function connectDB() {
 
 function parseUSN(usn) {
     const usnLower = usn.toLowerCase().trim();
-    const regex = /^(\d{0,2})([a-z]{2})(\d{2})([a-z]{2})(\d{3})$/;
+    // Updated regex to handle variable-length department codes (2-10 characters)
+    const regex = /^(\d{0,2})([a-z]{2})(\d{2})([a-z]{2,10})(\d{3})$/;
     const match = usnLower.match(regex);
-    
+
     if (!match) {
         throw new Error(`Invalid USN format: ${usn}`);
     }

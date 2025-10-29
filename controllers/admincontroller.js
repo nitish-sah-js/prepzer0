@@ -173,7 +173,7 @@ exports.allStudents = async (req, res) => {
     // Get filter parameters from query string
     const { semester, department, usn, page = 1 } = req.query
     // Pagination settings
-    const limit = 20 // Students per page
+    const limit = 50 // Students per page
     const currentPage = parseInt(page)
     const skip = (currentPage - 1) * limit
 
@@ -185,8 +185,9 @@ exports.allStudents = async (req, res) => {
     // We'll filter by semester in-memory after fetching.
 
     if (department) {
-      // Case insensitive search for department
-      filter.Department = new RegExp(department, "i")
+      // Exact match for department (case insensitive)
+      // Use exact match to prevent "cs" from matching "cseds", "csds", etc.
+      filter.Department = { $regex: `^${department}$`, $options: "i" }
     }
 
     if (usn) {
@@ -2910,7 +2911,7 @@ exports.upgradeSemester = async (req, res) => {
       { _id: { $in: studentIds } },
       {
         $set: { Semester: newSemester },
-        $unset: { currentSemesterOverride: "" }  // Remove the override field
+        $unset: { currentSemesterOverride: "" }, // Remove the override field
       }
     )
 

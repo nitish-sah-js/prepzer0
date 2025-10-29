@@ -176,19 +176,20 @@ exports.signupcontrol = async (req, res) => {
     
     // USN validation and parsing
     const usn = USN.toLowerCase().trim();
-    // Updated regex to handle any college code (not just BY)
-    const regex = /^(\d{0,2})([a-z]{2})(\d{2})([a-z]{2})(\d{3})$/;
+    // Updated regex to handle variable-length department codes (2-10 characters)
+    // Format: [optional 1-2 digits][2 letter college code][2 digit year][2-10 letter department][3 digit roll number]
+    const regex = /^(\d{0,2})([a-z]{2})(\d{2})([a-z]{2,10})(\d{3})$/;
     const match = usn.match(regex);
-    
+
     if (!match) {
-      return res.status(400).render('signup', { 
-        errormsg: "Invalid USN format (e.g., 1BY20CS001, 1TD19IS045)" 
+      return res.status(400).render('signup', {
+        errormsg: "Invalid USN format (e.g., 1BY20CS001, 1BY22CSEDS001, 1TD19ISANDS045)"
       });
     }
-    
+
     const collegeCode = match[1] + match[2];
     const year = "20" + match[3];
-    const department = match[4];
+    const department = match[4];  // Now supports 2-10 character department codes
     const rollNo = match[5];
 
     // Calculate current semester dynamically based on USN year and current date
