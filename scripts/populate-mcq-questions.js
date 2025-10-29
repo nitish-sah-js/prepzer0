@@ -409,7 +409,7 @@ async function populateMCQQuestions() {
   try {
     // Connect to MongoDB
     const dburl =
-      "mongodb+srv://mailtogautamsah_db_user:EQFfxBtlQLJ86jSt@cluster0.4cwbc5w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+      "mongodb+srv://nitishjs003_db_user:1T4Y88VjllYyomvU@cluster0.2w43poj.mongodb.net/?appName=Cluster0"
     await mongoose.connect(dburl, {
       useNewUrlParser: true,
       useUnifiedTopology: true,

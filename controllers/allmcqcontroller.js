@@ -39,8 +39,10 @@ exports.getAllMCQQuestions = async (req, res) => {
             .skip(skip)
             .limit(limit);
 
-        // Get unique classifications for filter dropdown
-        const allClassifications = await AllMCQQuestion.distinct('classification');
+        // Get ALL classifications from Classification model for filter dropdown
+        // This ensures all classifications are shown, not just ones with existing questions
+        const classificationDocs = await Classification.find({ active: true }).sort({ name: 1 });
+        const allClassifications = classificationDocs.map(c => c.name);
 
         // Render the EJS template with pagination data
         res.render("allMCQQuestion", {
@@ -205,12 +207,27 @@ exports.addGlobalMCQQuestion = async (req, res) => {
             return res.redirect('/admin/mcq-questions/add');
         }
 
+        // Create options array
+        const optionsArray = [option1.trim(), option2.trim(), option3.trim(), option4.trim()];
+
+        // Convert correctAnswer from index (0,1,2,3) to actual text
+        // The form sends the index, but we need to store the actual answer text
+        const correctAnswerIndex = parseInt(correctAnswer);
+        const correctAnswerText = optionsArray[correctAnswerIndex];
+
+        if (!correctAnswerText) {
+            if (req.flash) {
+                req.flash('error', 'Invalid correct answer selection');
+            }
+            return res.redirect('/admin/mcq-questions/add');
+        }
+
         // Create new MCQ question
         const newMCQQuestion = new AllMCQQuestion({
             classification: classification || 'General',
             question: question.trim(),
-            options: [option1.trim(), option2.trim(), option3.trim(), option4.trim()],
-            correctAnswer: correctAnswer.trim(),
+            options: optionsArray,
+            correctAnswer: correctAnswerText,
             level: level,
             marks: parseInt(marks) || 1,
             questionType: 'mcq',
@@ -219,13 +236,24 @@ exports.addGlobalMCQQuestion = async (req, res) => {
 
         await newMCQQuestion.save();
 
+        console.log('✅ MCQ Question saved successfully:', {
+            id: newMCQQuestion._id,
+            classification: newMCQQuestion.classification,
+            question: newMCQQuestion.question.substring(0, 50) + '...'
+        });
+
         if (req.flash) {
             req.flash('success', 'MCQ question added successfully!');
         }
         res.redirect('/admin/mcq-questions');
 
     } catch (error) {
-        console.error('Error adding MCQ question:', error);
+        console.error('❌ Error adding MCQ question:', error);
+        console.error('Error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+        });
         if (req.flash) {
             req.flash('error', 'Error adding question: ' + error.message);
         }

@@ -5,7 +5,8 @@ const User = require("../models/usermodel")
 async function createAdmin() {
   try {
     // Connect to MongoDB
-    const dburl = process.env.MONGODB_URI
+    const dburl =
+      "mongodb+srv://nitishjs003_db_user:1T4Y88VjllYyomvU@cluster0.2w43poj.mongodb.net/?appName=Cluster0"
     await mongoose.connect(dburl, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
