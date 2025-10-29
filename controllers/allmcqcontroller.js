@@ -1,7 +1,7 @@
 // controllers/mcqQuestionController.js
 const MCQQuestion = require('../models/MCQQuestion');
 const AllMCQQuestion = require('../models/MCQschema');
-
+const Classification = require('../models/Classification');
 const Exam = require('../models/Exam');
 const fs = require('fs');
 const csv = require('csv-parser');
@@ -11,12 +11,53 @@ const mongoose = require('mongoose');
 
 exports.getAllMCQQuestions = async (req, res) => {
     try {
-        // Fetch all questions from database
-        const mcqQuestions = await AllMCQQuestion.find().sort({ level: 1 });
-        
-        // Render the EJS template with the questions
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20; // Show 20 questions per page
+        const skip = (page - 1) * limit;
+
+        // Filter parameters
+        const classificationFilter = req.query.classification || '';
+        const levelFilter = req.query.level || '';
+
+        // Build filter query
+        const filterQuery = {};
+        if (classificationFilter) {
+            filterQuery.classification = classificationFilter;
+        }
+        if (levelFilter) {
+            filterQuery.level = levelFilter;
+        }
+
+        // Get total count for pagination
+        const totalQuestions = await AllMCQQuestion.countDocuments(filterQuery);
+        const totalPages = Math.ceil(totalQuestions / limit);
+
+        // Fetch paginated questions
+        const mcqQuestions = await AllMCQQuestion.find(filterQuery)
+            .sort({ createdAt: -1, level: 1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Get unique classifications for filter dropdown
+        const allClassifications = await AllMCQQuestion.distinct('classification');
+
+        // Render the EJS template with pagination data
         res.render("allMCQQuestion", {
-            mcqQuestions : mcqQuestions
+            mcqQuestions: mcqQuestions,
+            classifications: allClassifications,
+            pagination: {
+                currentPage: page,
+                totalPages: totalPages,
+                totalQuestions: totalQuestions,
+                limit: limit,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
+            },
+            filters: {
+                classification: classificationFilter,
+                level: levelFilter
+            }
         });
     } catch (error) {
         console.error('Error fetching MCQ questions:', error);
@@ -116,5 +157,113 @@ exports.uploadMCQCSV = async (req, res) => {
     console.error('Error uploading CSV:', error);
     res.status(500).send('Error processing file: ' + error.message);
   }
+};
+
+/**
+ * Render the Add MCQ Question form
+ * GET /admin/mcq-questions/add
+ */
+exports.getAddMCQForm = async (req, res) => {
+    try {
+        // Get all active classifications from the database
+        const classifications = await Classification.find({ active: true }).sort({ name: 1 });
+
+        res.render("add_global_mcq", {
+            classifications: classifications,
+            errorMsg: req.flash ? req.flash('error') : '',
+            successMsg: req.flash ? req.flash('success') : ''
+        });
+    } catch (error) {
+        console.error('Error loading add MCQ form:', error);
+        res.status(500).send("Error loading the form.");
+    }
+};
+
+/**
+ * Handle adding a new global MCQ question
+ * POST /admin/mcq-questions/add
+ */
+exports.addGlobalMCQQuestion = async (req, res) => {
+    try {
+        const {
+            classification,
+            question,
+            option1,
+            option2,
+            option3,
+            option4,
+            correctAnswer,
+            level,
+            marks
+        } = req.body;
+
+        // Validate required fields
+        if (!question || !option1 || !option2 || !option3 || !option4 || !correctAnswer || !level) {
+            if (req.flash) {
+                req.flash('error', 'All fields are required');
+            }
+            return res.redirect('/admin/mcq-questions/add');
+        }
+
+        // Create new MCQ question
+        const newMCQQuestion = new AllMCQQuestion({
+            classification: classification || 'General',
+            question: question.trim(),
+            options: [option1.trim(), option2.trim(), option3.trim(), option4.trim()],
+            correctAnswer: correctAnswer.trim(),
+            level: level,
+            marks: parseInt(marks) || 1,
+            questionType: 'mcq',
+            createdBy: req.user ? (req.user.fname + ' ' + req.user.lname) : 'Admin'
+        });
+
+        await newMCQQuestion.save();
+
+        if (req.flash) {
+            req.flash('success', 'MCQ question added successfully!');
+        }
+        res.redirect('/admin/mcq-questions');
+
+    } catch (error) {
+        console.error('Error adding MCQ question:', error);
+        if (req.flash) {
+            req.flash('error', 'Error adding question: ' + error.message);
+        }
+        res.redirect('/admin/mcq-questions/add');
+    }
+};
+
+/**
+ * Handle deleting a global MCQ question
+ * DELETE /admin/mcq-questions/:id
+ */
+exports.deleteGlobalMCQQuestion = async (req, res) => {
+    try {
+        const questionId = req.params.id;
+
+        // Check if question exists
+        const question = await AllMCQQuestion.findById(questionId);
+        if (!question) {
+            return res.status(404).json({
+                success: false,
+                message: 'Question not found'
+            });
+        }
+
+        // Delete the question
+        await AllMCQQuestion.findByIdAndDelete(questionId);
+
+        res.json({
+            success: true,
+            message: 'Question deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Error deleting MCQ question:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting question'
+        });
+    }
 };
 

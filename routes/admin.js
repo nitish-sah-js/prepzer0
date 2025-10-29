@@ -70,6 +70,10 @@ router
   .post(authenticatecontroller.postVerified)
 
 router.route("/mcq-questions").get(mcqquestions.getAllMCQQuestions)
+router.route("/mcq-questions/add")
+  .get(mcqquestions.getAddMCQForm)
+  .post(mcqquestions.addGlobalMCQQuestion)
+router.route("/mcq-questions/:id/delete").delete(mcqquestions.deleteGlobalMCQQuestion)
 
 router.route("/profile/students").get(admincontroller.allStudents)
 router.route("/students/:studentId/exams").get(admincontroller.getStudentExams)
