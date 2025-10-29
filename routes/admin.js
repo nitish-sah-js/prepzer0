@@ -10,6 +10,7 @@ const reportController = require("../controllers/reportController")
 const databaseController = require("../controllers/dbQuestionsController")
 const departmentController = require("../controllers/departmentcontroller")
 const bulkStudentController = require("../controllers/bulkStudentController")
+const classificationController = require("../controllers/classificationController")
 const { requireAdmin, requireAdminAPI } = require("../middleware/auth")
 
 // Apply authentication middleware to ALL admin routes
@@ -163,6 +164,24 @@ router
 router
   .route("/api/departments/active")
   .get(departmentController.getActiveDepartments)
+
+// Classification management routes
+router
+  .route("/classifications")
+  .get(classificationController.getClassifications)
+
+router
+  .route("/classifications/add")
+  .post(classificationController.addClassification)
+
+router
+  .route("/classifications/:id")
+  .put(classificationController.updateClassification)
+  .delete(classificationController.deleteClassification)
+
+router
+  .route("/api/classifications")
+  .get(classificationController.getActiveClassifications)
 
 // Semester upgrade route
 router.route("/upgrade-semester").post(admincontroller.upgradeSemester)

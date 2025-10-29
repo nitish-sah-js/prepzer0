@@ -2617,9 +2617,11 @@ exports.editStudent = async (req, res) => {
     student.email = email
     student.Department = Department
 
-    // Don't update the stored Semester field - keep it as original enrollment semester
-    // Instead, set currentSemesterOverride to change what's displayed
-    student.currentSemesterOverride = parseInt(Semester)
+    // Update the actual Semester field to ensure proper exam eligibility
+    student.Semester = parseInt(Semester)
+
+    // Clear any override since we're setting the actual semester
+    student.currentSemesterOverride = undefined
 
     if (phone) student.phone = phone
     if (Rollno) student.Rollno = Rollno
@@ -2901,11 +2903,15 @@ exports.upgradeSemester = async (req, res) => {
       })
     }
 
-    // Update students individually to set currentSemesterOverride
+    // Update students to set the actual Semester field and clear any override
+    // This ensures the semester is properly updated for all checks
     const studentIds = studentsToUpdate.map((s) => s._id)
     const updateResult = await User.updateMany(
       { _id: { $in: studentIds } },
-      { $set: { currentSemesterOverride: newSemester } }
+      {
+        $set: { Semester: newSemester },
+        $unset: { currentSemesterOverride: "" }  // Remove the override field
+      }
     )
 
     console.log(

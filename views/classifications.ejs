@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Classifications</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --dark-bg: #111827;
+            --card-bg: #1f2937;
+            --light-text: #f9fafb;
+            --secondary-text: #9ca3af;
+            --border-color: #374151;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-section img {
+            width: 36px;
+            height: 36px;
+            margin-right: 0.75rem;
+        }
+
+        .logo-section h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            background: linear-gradient(to right, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            padding: 0 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            border: none;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-bg);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: #fff;
+        }
+
+        .btn {
+            border-radius: 0.375rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #0ea763;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .table-container {
+            padding: 0.5rem;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            color: #f9fafb;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--secondary-text);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .status-active {
+            color: var(--success);
+        }
+
+        .status-inactive {
+            color: var(--warning);
+        }
+
+        .empty-state {
+            padding: 3rem 1rem;
+            text-align: center;
+            color: var(--secondary-text);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            margin: 0;
+            color: var(--light-text);
+        }
+
+        .close {
+            background: transparent;
+            border: none;
+            color: var(--secondary-text);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--light-text);
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--secondary-text);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--secondary-text);
+            margin: 0 1rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--light-text);
+        }
+
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-section">
+            <img src="../uploads/unnamed-removebg-preview.png" alt="Logo">
+            <h1>PrepZer0</h1>
+        </div>
+        <div>
+            <a href="/admin" class="nav-link">
+                <i class="fas fa-arrow-left"></i> Back to Admin
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <% if (typeof successMsg !== 'undefined' && successMsg && successMsg.length > 0) { %>
+            <div class="alert alert-success">
+                <%= successMsg %>
+            </div>
+        <% } %>
+
+        <% if (typeof errorMsg !== 'undefined' && errorMsg && errorMsg.length > 0) { %>
+            <div class="alert alert-error">
+                <%= errorMsg %>
+            </div>
+        <% } %>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Question Classifications</h2>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    <i class="fas fa-plus"></i> Add Classification
+                </button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Usage Count</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (classifications && classifications.length > 0) { %>
+                            <% classifications.forEach(classification => { %>
+                                <tr>
+                                    <td><strong><%= classification.name %></strong></td>
+                                    <td><%= classification.description || 'No description' %></td>
+                                    <td>
+                                        <span class="badge badge-info">
+                                            <%= classification.usageCount %> questions
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <% if (classification.active) { %>
+                                            <span class="status-active">
+                                                <i class="fas fa-check-circle"></i> Active
+                                            </span>
+                                        <% } else { %>
+                                            <span class="status-inactive">
+                                                <i class="fas fa-times-circle"></i> Inactive
+                                            </span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <div class="actions">
+                                            <button class="btn btn-sm btn-warning" onclick='editClassification("<%= classification._id %>", "<%= classification.name %>", "<%= classification.description || "" %>", <%= classification.active %>)'>
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick='deleteClassification("<%= classification._id %>", "<%= classification.name %>", <%= classification.usageCount %>)'>
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state">
+                                        <i class="fas fa-tags"></i>
+                                        <h3>No Classifications Found</h3>
+                                        <p>Create your first classification to organize questions</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Classification Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-plus"></i> Add Classification
+                </h2>
+                <button class="close" onclick="closeAddModal()">&times;</button>
+            </div>
+            <form id="addForm" onsubmit="event.preventDefault(); addClassification();">
+                <div class="form-group">
+                    <label class="form-label">
+                        Name <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="text" id="addName" class="form-control" required maxlength="100" placeholder="e.g., Data Structures">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="addDescription" class="form-control" rows="3" maxlength="500" placeholder="Optional description"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add Classification
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Classification Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-edit"></i> Edit Classification
+                </h2>
+                <button class="close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editForm" onsubmit="event.preventDefault(); updateClassification();">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label class="form-label">
+                        Name <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="text" id="editName" class="form-control" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="editDescription" class="form-control" rows="3" maxlength="500"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        Status
+                        <label class="switch" style="margin-left: 10px;">
+                            <input type="checkbox" id="editActive">
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Update Classification
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Add Modal Functions
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'flex';
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+            document.getElementById('addForm').reset();
+        }
+
+        // Edit Modal Functions
+        function openEditModal() {
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editForm').reset();
+        }
+
+        function editClassification(id, name, description, active) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = name;
+            document.getElementById('editDescription').value = description;
+            document.getElementById('editActive').checked = active;
+            openEditModal();
+        }
+
+        // Add Classification
+        async function addClassification() {
+            const name = document.getElementById('addName').value;
+            const description = document.getElementById('addDescription').value;
+
+            try {
+                const response = await fetch('/admin/classifications/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, description })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Failed to add classification');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while adding classification');
+            }
+        }
+
+        // Update Classification
+        async function updateClassification() {
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('editName').value;
+            const description = document.getElementById('editDescription').value;
+            const active = document.getElementById('editActive').checked;
+
+            try {
+                const response = await fetch(`/admin/classifications/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, description, active })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Failed to update classification');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating classification');
+            }
+        }
+
+        // Delete Classification
+        async function deleteClassification(id, name, usageCount) {
+            if (usageCount > 0) {
+                alert(`Cannot delete "${name}". It is being used by ${usageCount} question(s). Please reassign or delete those questions first.`);
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete the classification "${name}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/classifications/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Failed to delete classification');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while deleting classification');
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

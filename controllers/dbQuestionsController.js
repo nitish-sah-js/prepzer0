@@ -1,9 +1,7 @@
 const Question = require('../models/MCQQuestion');
 const AllQuestion = require('../models/MCQschema');
 const Exam = require('../models/Exam');
-
-// Store for custom classifications (in-memory, will persist via questions)
-let customClassifications = [];
+const Classification = require('../models/Classification');
 
 /**
  * Display the database questions page with filtering options
@@ -46,12 +44,16 @@ exports.showDatabaseQuestions = async (req, res) => {
         // Fetch all questions based on the filter
         const questions = await AllQuestion.find(filter);
         
-        // Get all unique classifications for the dropdown
+        // Get all unique classifications from questions
         const allQuestions = await AllQuestion.find({ questionType: 'mcq' });
         const dbClassifications = [...new Set(allQuestions.map(q => q.classification).filter(Boolean))];
 
-        // Merge database classifications with custom classifications
-        const classifications = [...new Set([...dbClassifications, ...customClassifications])].sort();
+        // Get all active classifications from Classification model
+        const classificationDocs = await Classification.find({ active: true }).sort({ name: 1 });
+        const modelClassifications = classificationDocs.map(c => c.name);
+
+        // Merge all classifications (from questions and Classification model)
+        const classifications = [...new Set([...dbClassifications, ...modelClassifications])].sort();
 
 
         res.render('database_questions', {
@@ -383,7 +385,7 @@ exports.addRandomQuestions = async (req, res) => {
 };
 
 /**
- * Add a new classification (API endpoint)
+ * Add a new classification (API endpoint for exam-specific modal)
  */
 exports.addClassification = async (req, res) => {
     try {
@@ -395,20 +397,27 @@ exports.addClassification = async (req, res) => {
 
         const trimmedClassification = classification.trim();
 
-        // Check if classification already exists in database
-        const existingQuestion = await AllQuestion.findOne({ classification: trimmedClassification });
+        // Check if classification already exists in Classification model
+        const existingClassification = await Classification.findOne({
+            name: { $regex: new RegExp(`^${trimmedClassification}$`, 'i') }
+        });
 
-        if (existingQuestion) {
+        if (existingClassification) {
             return res.status(400).json({
                 success: false,
-                message: 'This classification already exists in the database'
+                message: 'This classification already exists'
             });
         }
 
-        // Add to custom classifications array (in-memory)
-        if (!customClassifications.includes(trimmedClassification)) {
-            customClassifications.push(trimmedClassification);
-        }
+        // Create new classification in database
+        const newClassification = new Classification({
+            name: trimmedClassification,
+            description: '',
+            createdBy: req.user ? req.user._id : null,
+            active: true
+        });
+
+        await newClassification.save();
 
         return res.json({
             success: true,
