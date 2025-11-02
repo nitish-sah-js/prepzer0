@@ -11,6 +11,7 @@ const databaseController = require("../controllers/dbQuestionsController")
 const departmentController = require("../controllers/departmentcontroller")
 const bulkStudentController = require("../controllers/bulkStudentController")
 const classificationController = require("../controllers/classificationController")
+const analyticsController = require("../controllers/analyticsController")
 const { requireAdmin, requireAdminAPI } = require("../middleware/auth")
 
 // Apply authentication middleware to ALL admin routes
@@ -198,5 +199,18 @@ router
 router
   .route("/partial-submission/:submissionId")
   .get(admincontroller.viewPartialSubmission)
+
+// Performance Analytics routes
+router
+  .route("/analytics")
+  .get(analyticsController.getAnalyticsDashboard)
+
+router
+  .route("/analytics/student/:studentId")
+  .get(analyticsController.getStudentClassificationReport)
+
+router
+  .route("/analytics/api/student/:studentId")
+  .get(analyticsController.getStudentPerformanceAPI)
 
 module.exports = router

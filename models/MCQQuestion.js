@@ -19,4 +19,7 @@ const MCQSchema = new mongoose.Schema({
 
 });
 
+// Index for performance analytics - improves query performance when filtering by exam and classification
+MCQSchema.index({ examId: 1, classification: 1 });
+
 module.exports = mongoose.model("MCQ", MCQSchema);

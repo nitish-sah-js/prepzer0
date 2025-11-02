@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Performance Report - <%= student.name %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #818cf8;
+            --primary-hover: #6366f1;
+            --dark-bg: #0a0e1a;
+            --card-bg: #111827;
+            --card-bg-light: #1f2937;
+            --light-text: #ffffff;
+            --secondary-text: #e5e7eb;
+            --tertiary-text: #d1d5db;
+            --border-color: #374151;
+            --row-hover: #1f2937;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --info: #60a5fa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            min-height: 100vh;
+            padding-bottom: 3rem;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #374151;
+        }
+
+        .logo-section h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-section h1 i {
+            color: var(--primary);
+        }
+
+        .container {
+            padding: 0 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            margin-bottom: 1.5rem;
+            transition: gap 0.2s ease;
+        }
+
+        .back-link:hover {
+            gap: 0.75rem;
+        }
+
+        .card {
+            background: linear-gradient(135deg, var(--card-bg-light) 0%, var(--card-bg) 100%);
+            border-radius: 1rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(129, 140, 248, 0.2);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--light-text);
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .student-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, rgba(129, 140, 248, 0.2) 0%, rgba(167, 139, 250, 0.2) 100%);
+            border: 2px solid rgba(129, 140, 248, 0.4);
+            border-radius: 1rem;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(129, 140, 248, 0.3);
+        }
+
+        .stat-box h3 {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 0.75rem;
+            color: #ffffff;
+            text-shadow: 0 2px 8px rgba(129, 140, 248, 0.5);
+        }
+
+        .stat-box p {
+            font-size: 0.875rem;
+            color: #e5e7eb;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .performance-section {
+            margin-bottom: 2rem;
+        }
+
+        .performance-section h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #ffffff;
+        }
+
+        .performance-section h3 i {
+            font-size: 1.5rem;
+        }
+
+        .classification-card {
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.8) 100%);
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .classification-card:hover {
+            transform: translateX(8px);
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(31, 41, 55, 1) 0%, rgba(17, 24, 39, 1) 100%);
+            box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
+        }
+
+        .classification-info {
+            flex: 1;
+        }
+
+        .classification-name {
+            font-weight: 700;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .classification-stats {
+            font-size: 0.875rem;
+            color: #d1d5db;
+            font-weight: 500;
+        }
+
+        .classification-badge {
+            padding: 0.375rem 0.875rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-excellent {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3));
+            color: #6ee7b7;
+            font-weight: 700;
+            border: 1px solid #10b981;
+        }
+
+        .badge-good {
+            background: linear-gradient(135deg, rgba(132, 204, 22, 0.3), rgba(101, 163, 13, 0.3));
+            color: #bef264;
+            font-weight: 700;
+            border: 1px solid #84cc16;
+        }
+
+        .badge-average {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.3));
+            color: #fde047;
+            font-weight: 700;
+            border: 1px solid #f59e0b;
+        }
+
+        .badge-practice {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3));
+            color: #fdba74;
+            font-weight: 700;
+            border: 1px solid #f97316;
+        }
+
+        .badge-improvement {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3));
+            color: #fca5a5;
+            font-weight: 700;
+            border: 1px solid #ef4444;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.6) 0%, rgba(17, 24, 39, 0.6) 100%);
+            border: 2px solid rgba(129, 140, 248, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.2));
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: #e5e7eb;
+        }
+
+        tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: var(--row-hover);
+            transform: scale(1.01);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: var(--secondary-text);
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-box h3 {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            .back-link, .header {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-section">
+            <h1><i class="fas fa-chart-line"></i> Student Performance Report</h1>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Back Link -->
+        <a href="/admin/analytics" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Analytics Dashboard
+        </a>
+
+        <!-- Student Information Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-user-graduate"></i>
+                    Student Information
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="student-info-grid">
+                    <div class="info-item">
+                        <span class="info-label">USN</span>
+                        <span class="info-value"><%= student.USN %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Name</span>
+                        <span class="info-value"><%= student.name %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Department</span>
+                        <span class="info-value"><%= student.department || 'N/A' %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Semester</span>
+                        <span class="info-value"><%= student.semester || 'N/A' %></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Performance Stats -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h3><%= performance.overall.totalExams %></h3>
+                <p>Total Exams Taken</p>
+            </div>
+            <div class="stat-box">
+                <h3><%= performance.overall.overallAccuracy.toFixed(1) %>%</h3>
+                <p>Overall Accuracy</p>
+            </div>
+            <div class="stat-box">
+                <h3><%= performance.overall.totalQuestionsCorrect %>/<%= performance.overall.totalQuestionsAttempted %></h3>
+                <p>Questions Correct</p>
+            </div>
+            <div class="stat-box">
+                <h3><%= performance.overall.overallScorePercentage.toFixed(1) %>%</h3>
+                <p>Average Score</p>
+            </div>
+        </div>
+
+        <!-- Classification Performance Breakdown -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-tags"></i>
+                    Performance by Classification
+                </h2>
+            </div>
+            <div class="card-body">
+                <!-- Strong Areas -->
+                <% if (performance.classifications.strong.length > 0) { %>
+                    <div class="performance-section">
+                        <h3><i class="fas fa-trophy" style="color: #10b981;"></i> Strong Areas (80%+ Accuracy)</h3>
+                        <% performance.classifications.strong.forEach(cls => { %>
+                            <div class="classification-card">
+                                <div class="classification-info">
+                                    <div class="classification-name"><%= cls.classification %></div>
+                                    <div class="classification-stats">
+                                        <%= cls.correctAnswers %>/<%= cls.totalAttempted %> correct |
+                                        <%= cls.obtainedMarks %>/<%= cls.totalMarks %> marks
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" style="width: <%= cls.accuracy %>%; background-color: <%= cls.performanceColor %>;"></div>
+                                    </div>
+                                </div>
+                                <div class="classification-badge badge-<%= cls.performanceLevel.toLowerCase().replace(' ', '-') %>">
+                                    <%= cls.accuracy.toFixed(1) %>% | <%= cls.performanceLevel %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } %>
+
+                <!-- Moderate Areas -->
+                <% if (performance.classifications.moderate.length > 0) { %>
+                    <div class="performance-section">
+                        <h3><i class="fas fa-balance-scale" style="color: #eab308;"></i> Moderate Areas (60-80% Accuracy)</h3>
+                        <% performance.classifications.moderate.forEach(cls => { %>
+                            <div class="classification-card">
+                                <div class="classification-info">
+                                    <div class="classification-name"><%= cls.classification %></div>
+                                    <div class="classification-stats">
+                                        <%= cls.correctAnswers %>/<%= cls.totalAttempted %> correct |
+                                        <%= cls.obtainedMarks %>/<%= cls.totalMarks %> marks
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" style="width: <%= cls.accuracy %>%; background-color: <%= cls.performanceColor %>;"></div>
+                                    </div>
+                                </div>
+                                <div class="classification-badge badge-<%= cls.performanceLevel.toLowerCase().replace(' ', '-') %>">
+                                    <%= cls.accuracy.toFixed(1) %>% | <%= cls.performanceLevel %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } %>
+
+                <!-- Weak Areas -->
+                <% if (performance.classifications.weak.length > 0) { %>
+                    <div class="performance-section">
+                        <h3><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Needs Improvement (<60% Accuracy)</h3>
+                        <% performance.classifications.weak.forEach(cls => { %>
+                            <div class="classification-card">
+                                <div class="classification-info">
+                                    <div class="classification-name"><%= cls.classification %></div>
+                                    <div class="classification-stats">
+                                        <%= cls.correctAnswers %>/<%= cls.totalAttempted %> correct |
+                                        <%= cls.obtainedMarks %>/<%= cls.totalMarks %> marks
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" style="width: <%= cls.accuracy %>%; background-color: <%= cls.performanceColor %>;"></div>
+                                    </div>
+                                </div>
+                                <div class="classification-badge badge-<%= cls.performanceLevel.toLowerCase().replace(' ', '-') %>">
+                                    <%= cls.accuracy.toFixed(1) %>% | <%= cls.performanceLevel %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Visual Performance Analysis
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="charts-grid">
+                    <!-- Radar Chart -->
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+
+                    <!-- Bar Chart -->
+                    <div class="chart-container">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Table -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-table"></i>
+                    Detailed Statistics
+                </h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Classification</th>
+                            <th>Attempted</th>
+                            <th>Correct</th>
+                            <th>Incorrect</th>
+                            <th>Accuracy</th>
+                            <th>Marks (Obtained/Total)</th>
+                            <th>Score %</th>
+                            <th>Performance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% performance.classifications.all.forEach(cls => { %>
+                            <tr>
+                                <td><strong><%= cls.classification %></strong></td>
+                                <td><%= cls.totalAttempted %></td>
+                                <td style="color: var(--success);"><%= cls.correctAnswers %></td>
+                                <td style="color: var(--danger);"><%= cls.incorrectAnswers %></td>
+                                <td><strong><%= cls.accuracy.toFixed(1) %>%</strong></td>
+                                <td><%= cls.obtainedMarks %> / <%= cls.totalMarks %></td>
+                                <td><%= cls.scorePercentage.toFixed(1) %>%</td>
+                                <td>
+                                    <span class="classification-badge badge-<%= cls.performanceLevel.toLowerCase().replace(' ', '-') %>">
+                                        <%= cls.performanceLevel %>
+                                    </span>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js configuration
+        Chart.defaults.color = '#e5e7eb';
+        Chart.defaults.borderColor = '#4b5563';
+
+        // Radar Chart
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: <%- JSON.stringify(performance.chartData.radar) %>,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            color: '#e5e7eb',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(75, 85, 99, 0.6)'
+                        },
+                        angleLines: {
+                            color: 'rgba(75, 85, 99, 0.6)'
+                        },
+                        pointLabels: {
+                            color: '#ffffff',
+                            font: {
+                                size: 13,
+                                weight: '700'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Multi-Dimensional Performance Overview',
+                        color: '#ffffff',
+                        font: {
+                            size: 18,
+                            weight: '700'
+                        },
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        }
+                    }
+                }
+            }
+        });
+
+        // Bar Chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: <%- JSON.stringify(performance.chartData.bar) %>,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            },
+                            color: '#e5e7eb',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(75, 85, 99, 0.4)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#ffffff',
+                            font: {
+                                size: 12,
+                                weight: '700'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Accuracy by Classification',
+                        color: '#ffffff',
+                        font: {
+                            size: 18,
+                            weight: '700'
+                        },
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Accuracy: ' + context.parsed.x.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

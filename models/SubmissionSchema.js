@@ -8,4 +8,7 @@ const SubmissionSchema = new mongoose.Schema({
     submittedAt: { type: Date, default: Date.now }
 });
 
+// Index for performance analytics - improves query performance when fetching all submissions for a student
+SubmissionSchema.index({ student: 1, submittedAt: -1 });
+
 module.exports = mongoose.model("Submission", SubmissionSchema);

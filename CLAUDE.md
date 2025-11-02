@@ -369,6 +369,63 @@ exports.postcontrol = async (req, res) => { ... }
 **Security Vulnerability**:
 - Fixed: eval() function with user input in evaluationService.js line 542
 
+### UI/UX Improvements (October 2025)
+
+**Form Input Contrast Issues**:
+- Fixed: Poor contrast in modal form inputs across multiple admin pages
+- Solution: Changed input backgrounds from very dark (`#111827`) to lighter shades (`#374151`, `#2d3748`)
+- Added focus states with lighter backgrounds and proper border highlighting
+- Added placeholder styling with appropriate contrast (`#9ca3af`)
+- Files affected:
+  - `views/classifications.ejs` (lines 276-294) - Classification modal inputs
+  - `views/add_global_mcq.ejs` (lines 106-125) - Global MCQ form controls
+  - `views/bulk_student_upload.ejs` (lines 138-155) - Bulk upload form
+  - `views/departments.ejs` (lines 508-523) - Department modal forms
+
+**MCQ Questions Database Theme**:
+- Fixed: Page was using light mode theme, inconsistent with other admin pages
+- Solution: Converted entire page to dark theme matching admin dashboard
+- Changed: background, card backgrounds, text colors, borders, buttons, pagination
+- File: `views/allMCQQuestion.ejs` (lines 8-392)
+
+**Admin Dashboard Stats Cards Redesign**:
+- Removed: Unwanted percentage trend indicators (e.g., "12% from last month")
+- Added: Icon-based design with horizontal flex layout
+- Icons added for each card type: clipboard, clock, play, check, file
+- Improved: Larger stat values (2rem), gradient icon backgrounds, better visual hierarchy
+- File: `views/admin.ejs` (lines 526-570 CSS, 317-392 HTML)
+
+**Exam Interface Theme Default**:
+- Fixed: Exam interface was following system preference and defaulting to dark mode on dark systems
+- Solution: Changed to always default to light mode for better readability during exams
+- Students can still toggle to dark mode if preferred, choice is saved in localStorage
+- File: `views/test3.ejs` (lines 2374-2386)
+
+**Exam Candidates Action Buttons**:
+- Fixed: Action buttons (Export Report, Manage Attendance, View Partial Submissions) were cramped
+- Solution: Implemented flexbox layout with proper spacing
+- Changes:
+  - Added `action-buttons-container` class with flexbox and `gap: 0.75rem`
+  - Increased button padding from `0.375rem 0.75rem` to `0.5rem 1rem`
+  - Added subtle box shadows and smooth transitions
+  - Added hover effect with lift animation (`translateY(-2px)`)
+  - Buttons now wrap responsively on smaller screens
+- File: `views/exam_candidates.ejs` (lines 237-255 CSS, 449-459 HTML)
+
+**NaN Display Bug (Total Questions)**:
+- Fixed: "Total Questions" showing "NaN" when numMCQs or numCoding was undefined
+- Solution: Added fallback values using OR operator: `(exam.numMCQs || 0)`
+- Now displays "0" instead of undefined/null values
+- File: `views/exam_candidates.ejs` (line 455)
+
+**Design Principles Established**:
+- Dark theme as default for admin/teacher pages
+- Light theme as default for student exam interface (better readability)
+- Consistent form input contrast ratios for accessibility
+- Minimum `#374151` background for dark theme form inputs
+- Flexbox with gap for button groups instead of margin utilities
+- Hover effects with subtle animations for interactive elements
+
 ## When Making Changes
 
 ### Before modifying User model:
